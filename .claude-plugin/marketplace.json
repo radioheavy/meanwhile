@@ -1,0 +1,5 @@
+{
+  "name": "asksh",
+  "owner": { "name": "radioheavy" },
+  "plugins": [{ "name": "asksh", "source": "./" }]
+}

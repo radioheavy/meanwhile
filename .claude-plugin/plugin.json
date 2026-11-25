@@ -1,0 +1,8 @@
+{
+  "name": "asksh",
+  "version": "0.7.3",
+  "description": "ask.sh — Claude Code içinden anonim tanışma: /date",
+  "author": { "name": "radioheavy" },
+  "homepage": "https://ask.oktaydak.com",
+  "types": "./types/index.d.ts"
+}
