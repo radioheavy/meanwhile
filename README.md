@@ -1,82 +1,82 @@
 # ask.sh
 
-Kod yazarken biriyle tanış. Claude Code'da `/date` yaz; o an burada olan biriyle eşleş ve işini bırakmadan yan panelde konuş.
+Meet someone while you code. Type `/date` in Claude Code, get matched with someone who's here right now, and chat in the side panel without leaving your work.
 
 https://ask.oktaydak.com
 
-## Kurulum
+## Install
 
-Terminalde tek komut:
+One command in your terminal:
 
 ```
 curl -fsSL https://ask.oktaydak.com/kur.sh | sh
 ```
 
-Eklentiyi kurar (kuruluysa günceller) ve ask.sh için otomatik güncellemeyi açar: yeni sürümler Claude'u her açışında kendiliğinden gelir. Betik kısa, önce okumak istersen: https://ask.oktaydak.com/kur.sh
+It installs the plugin (or updates it if it's already installed) and turns on auto-update for ask.sh: new versions arrive on their own every time you open Claude. The script is short; if you'd like to read it first: https://ask.oktaydak.com/kur.sh
 
-Claude Code içinden kurmak istersen:
+To install from inside Claude Code instead:
 
 ```
 /plugin install asksh --marketplace radioheavy/asksh
 ```
 
-ardından `/plugin` → Marketplaces → asksh → Enable auto-update.
+then `/plugin` → Marketplaces → asksh → Enable auto-update.
 
-Masaüstü uygulamasında: istem kutusunun yanındaki + → Plugins → Add marketplace → `radioheavy/asksh` → Add plugin.
+In the desktop app: + next to the prompt box → Plugins → Add marketplace → `radioheavy/asksh` → Add plugin.
 
-## Güncelleme
+## Updating
 
-ask.sh yalnızca en son sürümle çalışır; eski sürümde kalan panel "güncelle" ekranı gösterir. Otomatik güncelleme açıksa Claude'u yeniden başlatman yeter. Değilse kurulum komutunu tekrar çalıştır:
+ask.sh only works with the latest version; an outdated panel shows an "update" screen. If auto-update is on, just restart Claude. If not, run the install command again:
 
 ```
 curl -fsSL https://ask.oktaydak.com/kur.sh | sh
 ```
 
-Hangi sürümde olduğunu `/date sürüm` gösterir.
+`/date version` shows which version you're on.
 
-## Kullanım
+## Usage
 
 ```
-/date                  paneli aç, tanışmaya başla
-/date yeni             sohbetlerin sürerken yeni biriyle tanış
-/date sohbetler        sohbet listesine dön
-/date <mesaj>          açık sohbete mesaj gönder (panelden de yazabilirsin)
-/date bitir            açık sohbeti bitir (kalıcı bağlantıyı siler)
-/date engelle          bu kişiyle bir daha karşılaşma
-/date bildir [neden]   rahatsız edeni bildir
-/date engellediklerim  engellediklerini gör, istersen engeli kaldır
-/date ayrıl            sıradan sohbetleri bitir (kalıcı bağlantılar durur)
-/date sürüm            sürümün ve güncelleme durumu
-/date yardım           bütün komutlar
+/date                  open the panel and start meeting people
+/date new              meet someone new while your chats continue
+/date chats            back to the chat list
+/date <message>        send a message to the open chat (you can also type in the panel)
+/date end              end the open chat (deletes a connection)
+/date block            never run into this person again
+/date report [reason]  report someone who bothers you
+/date blocked          see who you blocked, unblock if you like
+/date leave            end your regular chats (connections stay)
+/date version          your version and update status
+/date help             all commands
 ```
 
-İlk açılışta bir rumuz, cinsiyetin ve kimlerle tanışmak istediğin sorulur. Cinsiyetin karşındakine renkle görünür (kadın pembe, erkek mavi; söylemek istemezsen nötr bir renk). Kimlerle tanışmak istediğin hiç görünmez, sadece eşleştirmede kullanılır. İstersen alanını (Frontend, Backend…) ve şu anki halini (deploy bekliyor, gece mesaisinde…) da ekleyebilirsin; bunlar karşındakine görünür.
+The first time, you're asked for a nickname, your gender, and who you'd like to meet. Others see your gender as a color (pink for women, blue for men; a neutral color if you'd rather not say). Who you're looking for is never shown; it's only used for matching. You can also add your field (Frontend, Backend…) and what you're up to right now (Waiting on a deploy, Night owl…); the other person sees these.
 
-Aynı anda birden fazla kişiyle konuşabilirsin: panelde bir sohbet listesi, her birinde okunmamış sayısı ve "yazıyor…" durumu var. Panele geçmek için `ctrl+x tab`.
+You can talk to several people at once: the panel has a chat list, each with its unread count and a "typing…" indicator. Press `ctrl+x tab` to switch to the panel.
 
-**★ Bağlantıda kal:** İki taraf da isterse sohbet kalıcı olur. Claude'u kapatıp açsan da sohbet durur, karşın çevrimdışıyken yazdığın mesaj onu bekler. Bağlantıyı silen olursa mesajlarıyla birlikte silinir.
+**★ Stay connected:** If both of you want it, the chat is kept. It survives closing and reopening Claude, and messages you send while the other person is offline wait for them. If either of you deletes the connection, it's deleted along with its messages.
 
-## Fotoğraf
+## Photos
 
-Fotoğraf yalnızca **★ bağlantıda kaldığınız** kişilere gönderilebilir ve önce **karşı tarafın izni** istenir ("📷 Aslı sana fotoğraf göndermek istiyor. Almak ister misin?"). Hayır dersen o sohbette ondan fotoğraf gelmez; istediğin zaman "Fotoğraflara izin ver" ile açabilirsin. Sohbet listesinin altından genel olarak fotoğraf almayı kapatabilirsin.
+Photos can only be sent to people you've **★ stayed connected** with, and **the other person's permission** is asked first ("📷 Aslı wants to send you photos. Accept?"). If you say no, you won't get photos from them in that chat; you can turn them on any time with "Allow photos". Below the chat list you can turn off receiving photos altogether.
 
-Gönderirken sen seçersin: **🔥 Tek gösterim** (bir kez açılır, sonra herkesten silinir) ya da **📌 Sohbette kalsın** (bağlantı durdukça kalır). Panodaki ekran görüntüsünü ya da bir dosyayı gönderebilirsin; fotoğraf gönderilmeden önce küçültülür ve içindeki konum gibi bilgiler silinir (ffmpeg, ImageMagick ya da macOS'ta sips gerekir).
+When sending, you choose: **🔥 View once** (opens once, then it's deleted for everyone) or **📌 Keep in chat** (stays as long as you stay connected). You can send a screenshot from the clipboard or a file; photos are resized before they're sent, and details like location are removed (needs ffmpeg, ImageMagick, or sips on macOS).
 
-**Sorumluluk reddi:**
-- Gönderdiğin fotoğraftan yalnızca sen sorumlusun.
-- Çıplaklık ya da cinsel içerik, başkasına ait ya da izinsiz çekilmiş görüntüler ve 18 yaşından küçükleri gösteren her türlü görüntü yasaktır. Bildirilen fotoğraflar incelenir; kural ihlalinde erişim kapatılır ve gerekirse yetkililere bildirilir.
-- Tek gösterimlik fotoğraf açıldıktan sonra silinir, ama karşındaki ekran görüntüsü alabilir; ask.sh bunu engelleyemez.
+**Disclaimer:**
+- You alone are responsible for the photos you send.
+- Nudity or sexual content, images that belong to someone else or were taken without consent, and any image showing anyone under 18 are not allowed. Reported photos are reviewed; breaking the rules means losing access and, when needed, a report to the authorities.
+- A view-once photo is deleted after it's opened, but the other person could still take a screenshot; ask.sh can't prevent that.
 
-## Gizlilik ve güvenlik
+## Privacy and safety
 
-- Gerçek ad, e-posta ya da fotoğraf istenmez; sadece rumuzun görünür.
-- Sıradan sohbetler sunucunun belleğinde durur ve bitince silinir. İki tarafın da istediği kalıcı bağlantıların mesajları, biri bağlantıyı silene kadar saklanır. Bildirilen sohbetlerin son mesajları inceleme için saklanır.
-- Bildirimlerde mesajın kendisi görünmez; telefon, e-posta ya da link yazarsan göndermeden önce uyarılırsın.
-- **Karşındakinin yazdıkları Claude'a hiç gitmez.** Mesajlar yalnızca panelde ve bildirimlerde görünür; komut çıktıları modele gönderilmeyecek şekilde işaretlidir. Kimse senin Claude'una senin adına bir şey yaptıramaz.
-- 18 yaş ve üzeri içindir.
+- No real name, email or photo is asked for; only your nickname is shown.
+- Regular chats live in the server's memory and are deleted when they end. Messages in connections that both of you chose to keep are stored until one of you deletes the connection. The last messages of reported chats are kept for review.
+- Notifications never show the message itself; if you type a phone number, email or link, you're warned before it's sent.
+- **What the other person writes never reaches Claude.** Messages only show in the panel and in notifications; command output is marked so it's never sent to the model. Nobody can make your Claude do anything on your behalf.
+- For people 18 and older.
 
-## Notlar
+## Notes
 
-Bu eklenti Claude Code'un yeni "mod" altyapısını (komut, panel, bildirim) kullanır. Bu altyapı erken erişimde olduğu için Claude Code güncellemelerinde değişebilir.
+This plugin uses Claude Code's new "mod" platform (commands, panel, notifications). That platform is in early access, so it may change with Claude Code updates.
 
-Telif hakkı © 2026 radioheavy. Tüm hakları saklıdır.
+Copyright © 2026 radioheavy. All rights reserved.

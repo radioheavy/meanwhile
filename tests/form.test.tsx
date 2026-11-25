@@ -73,46 +73,46 @@ async function kurulumuGec(ui: any, rumuz = 'gececi_kedi') {
   await ui.press({ key: 'basla' })
 }
 
-test('kurulum 3 adımda ilerler, tercih hiçbir yerde yazmaz', async ($, on) => {
+test('setup moves through 3 steps, preference is never shown', async ($, on) => {
   kur(on)
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   await ui.press({ key: 'profil' })
-  expect((await ui.find({ type: 'Text', text: /nasıl seslenelim/ }))?.text).toBe('Sana nasıl seslenelim?')
+  expect((await ui.find({ type: 'Text', text: /should we call you/ }))?.text).toBe('What should we call you?')
   await ui.input({ key: 'rumuz', text: 'x' })
-  expect((await ui.find({ type: 'Text', text: /2–20/ }))?.text).toContain('Rumuz')
+  expect((await ui.find({ type: 'Text', text: /2–20/ }))?.text).toContain('Nickname')
   await ui.input({ key: 'rumuz', text: 'gececi_kedi' })
-  expect((await ui.find({ type: 'Text', text: /Memnun oldum/ }))?.text).toBe('Memnun oldum, gececi_kedi.')
+  expect((await ui.find({ type: 'Text', text: /Nice to meet you/ }))?.text).toBe('Nice to meet you, gececi_kedi.')
   await ui.select({ key: 'ben', value: 'e' })
   await ui.select({ key: 'ara', value: 'k' })
   await ui.press({ key: 'devam' })
-  expect((await ui.find({ type: 'Text', text: /Her şey hazır/ }))?.text).toBe('Her şey hazır, gececi_kedi.')
+  expect((await ui.find({ type: 'Text', text: /All set/ }))?.text).toBe('All set, gececi_kedi.')
   await ui.select({ key: 'alan', value: 'backend' })
-  expect(await ui.find({ type: 'Text', text: /arıyor|Kadınlarla/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Text', text: /Looking for|Women/ })).toBeUndefined()
   await ui.press({ key: 'geri' })
-  expect((await ui.find({ type: 'Text', text: /Memnun oldum/ }))?.text).toBe('Memnun oldum, gececi_kedi.')
+  expect((await ui.find({ type: 'Text', text: /Nice to meet you/ }))?.text).toBe('Nice to meet you, gececi_kedi.')
   await ui.unmount()
 })
 
-test('masaüstünde de çizilir', async ($, on) => {
+test('renders on desktop too', async ($, on) => {
   kur(on)
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   await ui.press({ key: 'profil' })
   await ui.input({ key: 'rumuz', text: 'kahve_ve_kod' })
   await ui.press({ key: 'devam' })
-  expect((await ui.find({ type: 'Text', text: /Her şey hazır/ }))?.text).toBe('Her şey hazır, kahve_ve_kod.')
+  expect((await ui.find({ type: 'Text', text: /All set/ }))?.text).toBe('All set, kahve_ve_kod.')
   await ui.unmount()
 })
 
-test('eski sürümde panel güncelleme ister', async ($, on) => {
+test('outdated version: panel asks to update', async ($, on) => {
   kur(on, { enAz: '0.9.0' })
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   await new Promise(r => (globalThis as any).setTimeout(r, 50))
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  expect((await ui.find({ type: 'Text', text: /güncellemen gerekiyor/ }))?.text).toBe("ask.sh'ı güncellemen gerekiyor")
+  expect((await ui.find({ type: 'Text', text: /need to update/ }))?.text).toBe('You need to update ask.sh')
   await ui.unmount()
 })
 
-test('aynı anda iki sohbet: liste, okunmamış, sohbete gir ve geri dön', async ($, on) => {
+test('two chats at once: list, unread, open a chat and go back', async ($, on) => {
   kur(on, {
     sohbetler: [
       sohbet('oda1', 'kahve_ve_kod', [{ n: 1, kim: 'o', metin: 'selam! deploy mu bekliyorsun?', at: 0 }]),
@@ -130,7 +130,7 @@ test('aynı anda iki sohbet: liste, okunmamış, sohbete gir ve geri dön', asyn
     expect(await ui.find({ type: 'Button', key: 'yeni' })).toBeUndefined()
     expect(await ui.find({ type: 'Button', key: 'kal' })).toBeDefined()
     await ui.press({ key: 'sikayet' })
-    expect((await ui.find({ type: 'Text', text: /neden bildiriyorsun/ }))?.text).toContain('kahve_ve_kod')
+    expect((await ui.find({ type: 'Text', text: /Why are you reporting/ }))?.text).toContain('kahve_ve_kod')
     await ui.press({ key: 'vazgec' })
     await ui.press({ key: 'geri-liste' })
     await ui.press({ key: 'ac-oda2' })
@@ -141,7 +141,7 @@ test('aynı anda iki sohbet: liste, okunmamış, sohbete gir ve geri dön', asyn
   }
 })
 
-test('engelleyince sohbet listeden kalkar, engeller listesinden geri alınır', async ($, on) => {
+test('blocking removes the chat from the list; it can be undone from the blocked list', async ($, on) => {
   kur(on, { sohbetler: [sohbet('odaX', 'rahatsiz_42', [{ n: 1, kim: 'o', metin: 'kaba bir mesaj', at: 0 }])] })
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   await kurulumuGec(ui, 'oktay')
@@ -150,14 +150,14 @@ test('engelleyince sohbet listeden kalkar, engeller listesinden geri alınır', 
   await ui.press({ key: 'engelle' })
   expect(await ui.find({ type: 'Text', text: /kaba/ })).toBeUndefined()
   expect(await ui.find({ type: 'Button', key: 'ac-odaX' })).toBeUndefined()
-  expect((await ui.find({ type: 'Text', text: /engellendi/ }))?.text).toContain('rahatsiz_42 engellendi')
+  expect((await ui.find({ type: 'Text', text: /is blocked/ }))?.text).toContain('rahatsiz_42 is blocked')
   await ui.press({ key: 'engeller' })
   await ui.press({ key: 'kaldir-' + 'c'.repeat(24) })
-  expect((await ui.find({ type: 'Text', text: /Kimseyi engellemedin/ }))?.text).toBe('Kimseyi engellemedin.')
+  expect((await ui.find({ type: 'Text', text: /haven’t blocked anyone/ }))?.text).toBe('You haven’t blocked anyone.')
   await ui.unmount()
 })
 
-test('zengin görünüm (yeni Claude): avatar, eşleşme satırı, profil tadı', async ($, on) => {
+test('rich view (new Claude): avatar, match line, profile flavor', async ($, on) => {
   kur(on, { surum: '2.1.332', sohbetler: [sohbet('oda1', 'kahve_ve_kod')] })
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   for (const surface of ['terminal', 'desktop'] as const) {
@@ -171,19 +171,19 @@ test('zengin görünüm (yeni Claude): avatar, eşleşme satırı, profil tadı'
     if (surface === 'terminal') {
       await ui.press({ key: 'profil' })
       await ui.input({ key: 'rumuz', text: 'gececi_kedi', kind: 'change' })
-      expect((await ui.find({ type: 'Text', text: /^avatarın$/ }))?.text).toBe('avatarın')
+      expect((await ui.find({ type: 'Text', text: /^your avatar$/ }))?.text).toBe('your avatar')
       await ui.input({ key: 'rumuz', text: 'gececi_kedi' })
       await ui.press({ key: 'devam' })
       await ui.press({ key: 'basla' })
       await ui.press({ key: 'ac-oda1' })
     }
-    expect((await ui.find({ type: 'Text', text: /ile eşleştiniz/ }))?.text).toContain('Backend · gece mesaisinde')
+    expect((await ui.find({ type: 'Text', text: /You matched with/ }))?.text).toContain('Backend · Night owl')
     expect(await ui.find({ type: 'Button', key: 'buz-0' })).toBeDefined()
     await ui.unmount()
   }
 })
 
-test('responsive: dar ekran, mobil ve küçültülmüş widget', async ($, on) => {
+test('responsive: narrow screen, mobile and minimized widget', async ($, on) => {
   kur(on, { sohbetler: [sohbet('oda1', 'kahve_ve_kod', [{ n: 1, kim: 'o', metin: 'çok uzun bir mesaj, dar ekranda kısalması gereken bir önizleme metni', at: 0 }])] })
   // dar terminal: eylemler ikinci satırda, önizleme kısalır
   const dar = await $.ui.mount({ ...PANE, surface: 'terminal', props: { ...PANE.props, bodyColumns: 40 } })
@@ -191,22 +191,22 @@ test('responsive: dar ekran, mobil ve küçültülmüş widget', async ($, on) =
   expect(await dar.find({ type: 'Button', key: 'ac-oda1' })).toBeDefined()
   await dar.press({ key: 'ac-oda1' })
   expect(await dar.find({ type: 'Button', key: 'bitir' })).toBeDefined()
-  expect((await dar.find({ type: 'Text', text: /^çevrimiçi$/ }))?.text).toBe('çevrimiçi')
+  expect((await dar.find({ type: 'Text', text: /^online$/ }))?.text).toBe('online')
   await dar.press({ key: 'geri-liste' })
   await dar.unmount()
   // mobil: yazma ipucu görünür
   const mob = await $.ui.mount({ ...PANE, surface: 'mobile', props: { ...PANE.props, bodyColumns: 36 } })
   await mob.press({ key: 'ac-oda1' })
-  expect((await mob.find({ type: 'Text', text: /\/date mesajın/ }))?.text).toContain('/date mesajın')
+  expect((await mob.find({ type: 'Text', text: /\/date your message/ }))?.text).toContain('/date your message')
   await mob.press({ key: 'geri-liste' })
   await mob.unmount()
   // masaüstünde küçültülmüş panel: tek bakışlık özet
   const w = await $.ui.mount({ ...PANE, surface: 'desktop', props: { ...PANE.props, placement: 'widget', bodyColumns: 24 } })
-  expect(await w.find({ type: 'Text', text: /sohbet|okunmamış|sakin/ })).toBeDefined()
+  expect(await w.find({ type: 'Text', text: /chat|unread|quiet/ })).toBeDefined()
   await w.unmount()
 })
 
-test('geri bildirim gönderilir; uzun mesaj balonda satır atlar', async ($, on) => {
+test('feedback is sent; a long message wraps inside the bubble', async ($, on) => {
   const uzun = 'bu gerçekten çok uzun bir mesaj, balonun içinde kendi kendine alt satıra geçmesi ve panelin tamamına yayılmaması lazım'
   kur(on, { sohbetler: [sohbet('oda1', 'kahve_ve_kod', [{ n: 1, kim: 'o', metin: uzun, at: 0 }])] })
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop', props: { ...PANE.props, bodyColumns: 60 } })
@@ -216,37 +216,37 @@ test('geri bildirim gönderilir; uzun mesaj balonda satır atlar', async ($, on)
   expect(balon?.text).toContain('\n')
   await ui.press({ key: 'geri-liste' })
   await ui.press({ key: 'geri-bildirim' })
-  expect((await ui.find({ type: 'Text', text: /Bize bir şey söyle/ }))?.text).toBe('Bize bir şey söyle')
+  expect((await ui.find({ type: 'Text', text: /Tell us something/ }))?.text).toBe('Tell us something')
   await ui.input({ key: 'geri-bildirim-yazi', text: 'balonlar daha güzel olsun' })
-  expect((await ui.find({ type: 'Text', text: /Teşekkürler/ }))?.text).toContain('ulaştı')
+  expect((await ui.find({ type: 'Text', text: /Thanks/ }))?.text).toContain('got your feedback')
   await ui.unmount()
 })
 
-test('ayrılmadan önce onay: tek sohbet ve hepsinden çıkış', async ($, on) => {
+test('confirm before leaving: one chat and signing out of all', async ($, on) => {
   kur(on, { sohbetler: [sohbet('oda1', 'kahve_ve_kod', [{ n: 1, kim: 'o', metin: 'selam', at: 0 }]), sohbet('oda2', 'gitmis_biri', [], { bitti: { neden: 'ayrıldı', ben: false } })] })
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   await kurulumuGec(ui)
   // karşı taraf hâlâ burada
   await ui.press({ key: 'ac-oda1' })
   await ui.press({ key: 'bitir' })
-  expect((await ui.find({ type: 'Text', text: /sohbetten ayrılıyorsun/ }))?.text).toContain('kahve_ve_kod')
+  expect((await ui.find({ type: 'Text', text: /leaving the chat/ }))?.text).toContain('kahve_ve_kod')
   expect(await ui.find({ type: 'Button', key: 'son-mesaj' })).toBeDefined()
   await ui.press({ key: 'ayril-evet' })
   expect(await ui.find({ type: 'Button', key: 'ac-oda1' })).toBeUndefined()
   // karşı taraf zaten ayrılmış
   await ui.press({ key: 'ac-oda2' })
   await ui.press({ key: 'kapat' })
-  expect((await ui.find({ type: 'Text', text: /zaten ayrıldı/ }))?.text).toContain('gitmis_biri')
+  expect((await ui.find({ type: 'Text', text: /already left/ }))?.text).toContain('gitmis_biri')
   await ui.press({ key: 'ayril-vazgec' })
   await ui.press({ key: 'geri-liste' })
   // hepsinden çıkış
   await ui.press({ key: 'cik' })
-  expect((await ui.find({ type: 'Text', text: /çıkıyorsun/ }))?.text).toBe("ask.sh'tan çıkıyorsun")
+  expect((await ui.find({ type: 'Text', text: /leaving ask\.sh/ }))?.text).toBe('You’re leaving ask.sh')
   await ui.press({ key: 'ayril-vazgec' })
   await ui.unmount()
 })
 
-test('masaüstünde mesajlar SVG tuvalinde çizilir (yeni Claude)', async ($, on) => {
+test('on desktop, messages are drawn on an SVG canvas (new Claude)', async ($, on) => {
   kur(on, { surum: '2.1.332', sohbetler: [sohbet('oda1', 'kahve_ve_kod', [{ n: 1, kim: 'o', metin: 'selam!', at: 0 }, { n: 2, kim: 'ben', metin: 'naber?', at: 1 }])] })
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
   let ui
@@ -271,10 +271,10 @@ test('masaüstünde mesajlar SVG tuvalinde çizilir (yeni Claude)', async ($, on
   await ui.unmount()
 })
 
-test('fotoğraf: izin isteği, izin ver, tek gösterimliği aç, gönderme formu ve sorumluluk reddi', async ($, on) => {
+test('photos: permission request, allow, open view-once, send form and disclaimer', async ($, on) => {
   kur(on, {
     sohbetler: [
-      sohbet('oda1', 'gece_kusu', [{ n: 1, kim: 'o', metin: '📷 Tek gösterimlik fotoğraf', at: 0, foto: { id: 'f1', mod: 'tek', durum: 'bekliyor' } }], {
+      sohbet('oda1', 'gece_kusu', [{ n: 1, kim: 'o', metin: '📷 View-once photo', at: 0, foto: { id: 'f1', mod: 'tek', durum: 'bekliyor' } }], {
         kalici: true, fotoIstekGeldi: true, fotoOndan: 'evet', fotoBenden: 'sor',
       }),
     ],
@@ -282,24 +282,24 @@ test('fotoğraf: izin isteği, izin ver, tek gösterimliği aç, gönderme formu
   const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
   await kurulumuGec(ui)
   await ui.press({ key: 'ac-oda1' })
-  expect((await ui.find({ type: 'Text', text: /fotoğraf göndermek istiyor/ }))?.text).toContain('gece_kusu')
+  expect((await ui.find({ type: 'Text', text: /wants to send you photos/ }))?.text).toContain('gece_kusu')
   await ui.press({ key: 'foto-evet' })
   expect(await ui.find({ type: 'Button', key: 'foto-evet' })).toBeUndefined()
   await ui.press({ key: 'foto-f1' })
-  expect((await ui.find({ type: 'Text', text: /Tek gösterimlik: kapatınca/ }))?.text).toContain('kapatınca')
+  expect((await ui.find({ type: 'Text', text: /View once: it can’t/ }))?.text).toContain('after you close it')
   await ui.press({ key: 'foto-kapat' })
   expect(await ui.find({ type: 'Button', key: 'foto-f1' })).toBeUndefined()
   await ui.press({ key: 'foto-gonder' })
-  expect((await ui.find({ type: 'Text', text: /Fotoğraf göndermeden önce/ }))?.text).toBe('Fotoğraf göndermeden önce')
+  expect((await ui.find({ type: 'Text', text: /Before you send a photo/ }))?.text).toBe('Before you send a photo')
   await ui.press({ key: 'foto-kabul' })
   expect(await ui.find({ type: 'Button', key: 'foto-pano' })).toBeDefined()
   await ui.press({ key: 'mod-kalici' })
-  expect((await ui.find({ type: 'Text', text: /durdukça/ }))?.text).toContain('sohbette kalır')
+  expect((await ui.find({ type: 'Text', text: /as long as/ }))?.text).toContain('Stays in the chat')
   await ui.press({ key: 'foto-vazgec' })
   await ui.unmount()
 })
 
-test('sohbette üst ve yazma kutusu sabit, son mesaj görünür', async ($, on) => {
+test('in a chat, header and input stay fixed, last message is visible', async ($, on) => {
   const mesajlar = Array.from({ length: 30 }, (_, i) => ({ n: i + 1, kim: i % 2 ? 'ben' : 'o', metin: `mesaj ${i + 1}`, at: i * 1000 }))
   kur(on, { sohbetler: [sohbet('oda1', 'kahve_ve_kod', mesajlar)] })
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })

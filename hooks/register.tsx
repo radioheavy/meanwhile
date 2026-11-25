@@ -12,7 +12,7 @@ import { sohbetSvg } from './sohbetSvg'
 
 const VARSAYILAN_SUNUCU = 'https://ask.oktaydak.com'
 // plugin.json'daki sürümle aynı olmalı.
-const SURUM = '0.7.3'
+const SURUM = '0.8.0'
 // Kurar ya da günceller ve otomatik güncellemeyi açar.
 const GUNCELLEME_KOMUTU = 'curl -fsSL https://ask.oktaydak.com/kur.sh | sh'
 // Çalışan Claude Code: zengin görünüm için en az ZENGIN_SURUM gerekir (Text weight/size, Input rows...).
@@ -20,7 +20,7 @@ const ZENGIN_SURUM = '2.1.328'
 const PANEL = 'asksh'
 const BASLIK = 'ask.sh'
 const RUMUZ = /^[\p{L}\p{N}_.-]{2,20}$/u
-const RUMUZ_UYARI = 'Rumuz 2–20 karakter olabilir; harf, rakam ve _ . - kullanabilirsin.'
+const RUMUZ_UYARI = 'Nicknames can be 2–20 characters: letters, numbers, _ . and -.'
 const TURUNCU = '#ff5b14'
 // Cinsiyet renkleri: kadın pembe, erkek mavi; söylemek istemeyen kendi avatar renginde.
 const PEMBE = '#ec4899'
@@ -31,25 +31,60 @@ function kisiRenk(rumuz: string, cins?: string): string {
 const GRI_CIZGI = '#4a4a47'
 const GRI_BALON = '#3a3a3f'
 const GRI_BALON_YAZI = '#f1f1f3'
-const BAGLANTI_UYARI = 'Bağlantıda bir sorun var, tekrar deniyoruz…'
+const BAGLANTI_UYARI = 'Connection problem, retrying…'
+// "3 chats", "1 chat"
+const adet = (n: number, tekil: string, cogul = tekil + 's') => `${n} ${n === 1 ? tekil : cogul}`
 
 const ALAN_AD: Record<string, string> = {
   frontend: 'Frontend',
   backend: 'Backend',
-  mobil: 'Mobil',
-  oyun: 'Oyun',
-  veri: 'Veri',
+  mobil: 'Mobile',
+  oyun: 'Games',
+  veri: 'Data',
   devops: 'DevOps',
-  tasarim: 'Tasarım',
-  ogreniyorum: 'Öğreniyor',
+  tasarim: 'Design',
+  ogreniyorum: 'Learning',
 }
 const RUH_AD: Record<string, string> = {
-  deploy: 'deploy bekliyor',
-  gece: 'gece mesaisinde',
-  bug: 'bug kovalıyor',
-  mola: 'molada',
-  ogreniyorum: 'yeni bir şey öğreniyor',
-  toplanti: 'toplantıdan kaçmış',
+  deploy: 'Waiting on a deploy',
+  gece: 'Night owl',
+  bug: 'Bug hunting',
+  mola: 'On a break',
+  ogreniyorum: 'Learning something',
+  toplanti: 'Stuck in a meeting',
+}
+
+// /date alt komutları: İngilizce adlar asıl; eski Türkçe adlar sessiz takma ad.
+const KOMUT_TAKMA: Record<string, string> = {
+  yeni: 'new',
+  sohbetler: 'chats',
+  liste: 'chats',
+  list: 'chats',
+  oku: 'open',
+  git: 'open',
+  kal: 'stay',
+  bitir: 'end',
+  engelle: 'block',
+  bildir: 'report',
+  şikayet: 'report',
+  sikayet: 'report',
+  engellediklerim: 'blocked',
+  engeller: 'blocked',
+  'geri-bildirim': 'feedback',
+  geribildirim: 'feedback',
+  öneri: 'feedback',
+  oneri: 'feedback',
+  sürüm: 'version',
+  surum: 'version',
+  kur: 'setup',
+  profil: 'profile',
+  sunucu: 'server',
+  ayrıl: 'leave',
+  ayril: 'leave',
+  çık: 'leave',
+  cik: 'leave',
+  yardım: 'help',
+  yardim: 'help',
 }
 
 const BOS_EKRAN: Ekran = {
@@ -167,11 +202,11 @@ function durumSatiri($: E, e: Ekran) {
   const okunmamis = okunmamisToplam(e)
   $.ui.status(
     okunmamis > 0
-      ? `💬 ${okunmamis} okunmamış`
+      ? `💬 ${okunmamis} unread`
       : e.sirada
-        ? '⏳ ask.sh aranıyor'
+        ? '⏳ ask.sh · looking for someone…'
         : e.sohbetler.some(s => !s.bitti)
-          ? `💬 ask.sh · ${e.sohbetler.filter(s => !s.bitti).length} sohbet`
+          ? `💬 ask.sh · ${adet(e.sohbetler.filter(s => !s.bitti).length, 'chat')}`
           : undefined,
   )
 }
@@ -257,26 +292,26 @@ async function isle($: E, d: any) {
   const e = await read($, ekran)
   // Sistem bildirimleri (başka sekmedeyken de görünür)
   for (const x of e.sohbetler) {
-    if (yeniEslesme.includes(x.karsi.rumuz) && (await birKez($, 'es:' + x.id))) void sistemBildirimi($, 'ask.sh', `👋 ${x.karsi.rumuz} ile eşleştin`)
+    if (yeniEslesme.includes(x.karsi.rumuz) && (await birKez($, 'es:' + x.id))) void sistemBildirimi($, 'ask.sh', `👋 You matched with ${x.karsi.rumuz}`)
     const sonO = [...x.mesajlar].reverse().find(m => m.kim === 'o')
     if (sonO && x.okunmamis > 0 && x.id !== e.aktif && (await birKez($, `m:${x.id}:${sonO.n}`)))
-      void sistemBildirimi($, 'ask.sh', `💬 ${x.karsi.rumuz} ${x.okunmamis > 1 ? `${x.okunmamis} mesaj` : 'yeni mesaj'} gönderdi`)
-    if (x.fotoIstekGeldi && (await birKez($, 'fi:' + x.id))) void sistemBildirimi($, 'ask.sh', `📷 ${x.karsi.rumuz} sana fotoğraf göndermek istiyor`)
-    if (!x.kalici && x.kalO && !x.kalBen && (await birKez($, 'kal:' + x.id))) void sistemBildirimi($, 'ask.sh', `★ ${x.karsi.rumuz} bağlantıda kalmak istiyor`)
+      void sistemBildirimi($, 'ask.sh', `💬 ${x.karsi.rumuz} sent ${x.okunmamis > 1 ? `${x.okunmamis} messages` : 'a new message'}`)
+    if (x.fotoIstekGeldi && (await birKez($, 'fi:' + x.id))) void sistemBildirimi($, 'ask.sh', `📷 ${x.karsi.rumuz} wants to send you photos`)
+    if (!x.kalici && x.kalO && !x.kalBen && (await birKez($, 'kal:' + x.id))) void sistemBildirimi($, 'ask.sh', `★ ${x.karsi.rumuz} wants to stay connected`)
   }
   for (const rumuz of yeniEslesme) {
     // Klavyeyi çalmıyoruz: Claude'a yazarken yanlışlıkla yabancıya yazılmasın.
     void $.ui.open({ id: PANEL, title: BASLIK }).catch(() => {})
-    $.ui.toast(`👋 ${rumuz} ile eşleştin · panele geçmek için ctrl+x tab`)
+    $.ui.toast(`👋 You matched with ${rumuz} · ctrl+x tab to switch to the panel`)
   }
   for (const x of e.sohbetler) {
     if (x.fotoIstekGeldi && !fotoIstekBildirildi.has(x.id)) {
       fotoIstekBildirildi.add(x.id)
-      $.ui.toast(`📷 ${x.karsi.rumuz} sana fotoğraf göndermek istiyor`)
+      $.ui.toast(`📷 ${x.karsi.rumuz} wants to send you photos`)
     }
   }
   // Ekran paylaşırken okunmasın: bildirimlerde mesajın kendisi yok.
-  for (const y of yeniMesaj) $.ui.toast(`💬 ${y.rumuz} ${y.adet > 1 ? `${y.adet} mesaj` : 'yeni mesaj'} gönderdi`)
+  for (const y of yeniMesaj) $.ui.toast(`💬 ${y.rumuz} sent ${y.adet > 1 ? `${y.adet} messages` : 'a new message'}`)
   for (const b of biten) $.ui.toast(ayrilis(b.rumuz, b.neden))
   durumSatiri($, e)
   if (!e.sirada && e.sohbetler.length === 0) yoklamayiDurdur($)
@@ -284,8 +319,8 @@ async function isle($: E, d: any) {
 
 // Karşı tarafa nedenini açık etmeden, sıcak bir dille söyle (engellendiğini bilmesin).
 function ayrilis(rumuz: string, neden: string | undefined): string {
-  if (neden === 'bağlantısı koptu') return `${rumuz} ile bağlantı koptu.`
-  return `${rumuz} sohbetten ayrıldı.`
+  if (neden === 'bağlantısı koptu') return `Lost connection with ${rumuz}.`
+  return `${rumuz} left the chat.`
 }
 
 // İşletim sistemi bildirimi: başka bir sekmede ya da uygulamadayken de görünsün.
@@ -364,7 +399,7 @@ async function sirayaGir($: E) {
     return
   }
   await update($, ekran, (e: Ekran) => ({ ...e, durum: 'ana' as const, sirada: true, aktif: null, liste: null, uyari: '' }))
-  $.ui.status('⏳ ask.sh aranıyor')
+  $.ui.status('⏳ ask.sh · looking for someone…')
   await isle($, await api($, '/api/kuyruk', { ...p, yas18: true }))
   await yoklamayiBaslat($)
 }
@@ -375,10 +410,10 @@ async function siradanCik($: E) {
 
 // Kendi taslağında telefon, e-posta, link ya da kullanıcı adı varsa göndermeden önce bir kez uyar.
 const KISISEL: [RegExp, string][] = [
-  [/(\+?\d[\d\s().-]{8,}\d)/, 'bir telefon numarasına'],
-  [/[\w.+-]+@[\w-]+\.[\w.]+/, 'bir e-posta adresine'],
-  [/(https?:\/\/|www\.)\S+/i, 'bir linke'],
-  [/(^|\s)@[\w.]{3,}/, 'bir kullanıcı adına'],
+  [/(\+?\d[\d\s().-]{8,}\d)/, 'a phone number'],
+  [/[\w.+-]+@[\w-]+\.[\w.]+/, 'an email address'],
+  [/(https?:\/\/|www\.)\S+/i, 'a link'],
+  [/(^|\s)@[\w.]{3,}/, 'a username'],
 ]
 
 function sohbetGuncelle(e: Ekran, id: string, fn: (s: Sohbet) => Sohbet): Ekran {
@@ -394,7 +429,7 @@ async function gonder($: E, oda: string, metin: string) {
     await update($, ekran, (e: Ekran) => ({
       ...e,
       kisiselOnay: m,
-      uyari: `Bu ${kisisel[1]} benziyor. Emin misin? Yine de göndermek için tekrar Gönder'e bas.`,
+      uyari: `This looks like ${kisisel[1]}. Are you sure? Press Send again to send it anyway.`,
     }))
     return
   }
@@ -422,7 +457,7 @@ async function gonder($: E, oda: string, metin: string) {
   } catch (err: any) {
     await update($, ekran, (e: Ekran) => ({
       ...sohbetGuncelle(e, oda, s => ({ ...s, mesajlar: s.mesajlar.map(x => (x.n === yerel ? { ...x, durum: 'hata' as const } : x)) })),
-      uyari: /yavaş|bitti/i.test(String(err?.message)) ? String(err.message) : 'Bağlantı koptu, mesajın gitmedi. Tekrar yazıp gönderebilirsin.',
+      uyari: /slow down|ended/i.test(String(err?.message)) ? String(err.message) : 'Connection lost, your message wasn’t sent. You can type it and send it again.',
     }))
   }
 }
@@ -470,7 +505,7 @@ async function sohbetAc($: E, oda: string | null) {
 type Eylem = 'bitir' | 'engelle' | 'sikayet' | 'kapat'
 async function eylem($: E, ad: Eylem, oda: string, neden = '') {
   const s = (await read($, ekran)).sohbetler.find(x => x.id === oda)
-  const kim = s?.karsi.rumuz ?? 'Bu kişi'
+  const kim = s?.karsi.rumuz ?? 'This person'
   await api($, '/api/' + ad, ad === 'sikayet' ? { oda, neden } : { oda })
   // Engellenen, bildirilen, kapatılan ya da silinen bağlantı ekrandan hemen kalkar.
   await update($, ekran, (e: Ekran) => ({
@@ -481,17 +516,17 @@ async function eylem($: E, ad: Eylem, oda: string, neden = '') {
     yazSayac: e.yazSayac + 1,
     uyari:
       ad === 'engelle'
-        ? `${kim} engellendi. Bir daha karşılaşmayacaksınız.`
+        ? `${kim} is blocked. You won’t run into each other again.`
         : ad === 'sikayet'
-          ? `Bildirdin. ${kim} ile bir daha eşleşmeyeceksin. Teşekkürler.`
+          ? `Reported. You won’t be matched with ${kim} again. Thanks.`
           : ad === 'bitir' && s?.kalici
-            ? `${kim} ile bağlantını sildin.`
+            ? `You deleted your connection with ${kim}.`
             : ad === 'bitir' && s?.bitti
-              ? `${kim} ile konuşma silindi.`
+              ? `Your chat with ${kim} was deleted.`
               : ad === 'bitir'
-                ? `${kim} ile sohbetten ayrıldın. O da ayrılınca konuşma silinecek.`
+                ? `You left the chat with ${kim}. It’ll be deleted once they leave too.`
                 : ad === 'kapat'
-                  ? `${kim} ile konuşma silindi.`
+                  ? `Your chat with ${kim} was deleted.`
                   : '',
   }))
   const e = await read($, ekran)
@@ -506,7 +541,7 @@ async function kalIstegi($: E, oda: string) {
   await update($, ekran, (e: Ekran) =>
     sohbetGuncelle(e, oda, x => ({ ...x, kalBen: !s.kalBen, kalici: !!r.kalici, bitti: r.kalici ? null : x.bitti })),
   )
-  if (r.kalici) $.ui.toast(`★ ${s.karsi.rumuz} ile bağlantıdasınız. Sohbetiniz kalıcı.`)
+  if (r.kalici) $.ui.toast(`★ You and ${s.karsi.rumuz} are connected. Your chat is kept.`)
 }
 
 // ---------- fotoğraf ----------
@@ -524,7 +559,7 @@ async function calistir($: E, argv: string[]) {
 // (GPS konumu dahil) siler ve base64 JPEG olarak verir. ffmpeg, sips (macOS) ya da ImageMagick kullanır.
 async function fotoHazirla($: E, kaynak: string): Promise<{ b64: string; tur: string }> {
   const gecici = (await calistir($, ['mktemp', '-d'])).stdout.trim()
-  if (!gecici) throw new Error('Geçici klasör açılamadı.')
+  if (!gecici) throw new Error('Couldn’t create a temporary folder.')
   try {
     let girdi = kaynak.replace(/^~(?=\/)/, (await calistir($, ['sh', '-c', 'printf %s "$HOME"'])).stdout.trim())
     if (kaynak === 'pano') {
@@ -536,20 +571,20 @@ async function fotoHazirla($: E, kaynak: string): Promise<{ b64: string; tur: st
         'sh',
         girdi,
       ])
-      if (r.exitCode !== 0) throw new Error('Panoda bir görüntü yok. Önce ekran görüntüsü al ya da bir resim kopyala.')
-    } else if (!(await $.fs.exists(girdi))) throw new Error('Bu yolda bir dosya yok: ' + kaynak)
+      if (r.exitCode !== 0) throw new Error('There’s no image on the clipboard. Take a screenshot or copy an image first.')
+    } else if (!(await $.fs.exists(girdi))) throw new Error('No file at this path: ' + kaynak)
     const cikti = gecici + '/foto.jpg'
     for (const [en, q] of [[960, 5], [720, 6], [560, 7], [420, 9], [320, 12]] as const) {
       let r = await calistir($, ['ffmpeg', '-loglevel', 'error', '-y', '-i', girdi, '-vf', `scale='min(${en},iw)':-2`, '-map_metadata', '-1', '-q:v', String(q), cikti])
       if (r.exitCode !== 0) r = await calistir($, ['magick', girdi, '-auto-orient', '-strip', '-resize', `${en}x${en}>`, '-quality', String(90 - q * 4), cikti])
       if (r.exitCode !== 0) r = await calistir($, ['convert', girdi, '-auto-orient', '-strip', '-resize', `${en}x${en}>`, '-quality', String(90 - q * 4), cikti])
       if (r.exitCode !== 0) r = await calistir($, ['sips', '-s', 'format', 'jpeg', '-s', 'formatOptions', String(90 - q * 4), '-Z', String(en), girdi, '--out', cikti])
-      if (r.exitCode !== 0) throw new Error('Fotoğrafı hazırlamak için ffmpeg ya da ImageMagick gerekiyor (macOS’ta sips yeterli).')
+      if (r.exitCode !== 0) throw new Error('Preparing a photo needs ffmpeg or ImageMagick (on macOS, sips is enough).')
       const okunan = (await $.fs.read(cikti, { as: 'bytes' } as any)) as any
       const b64 = String(okunan?.base64 ?? '')
       if (b64 && b64.length <= FOTO_SINIR) return { b64, tur: 'jpeg' }
     }
-    throw new Error('Fotoğraf küçültülemedi; daha küçük bir resim dene.')
+    throw new Error('Couldn’t shrink the photo; try a smaller image.')
   } finally {
     void calistir($, ['rm', '-rf', gecici])
   }
@@ -560,7 +595,7 @@ async function fotoIzinIste($: E, oda: string) {
   await update($, ekran, (e: Ekran) => ({
     ...sohbetGuncelle(e, oda, x => ({ ...x, fotoIstekGitti: r.izin !== 'evet', fotoOndan: r.izin === 'evet' ? 'evet' : x.fotoOndan })),
     fotoForm: r.izin === 'evet' ? { oda, mod: 'tek' as const } : e.fotoForm,
-    uyari: r.izin === 'evet' ? '' : 'İsteğin gitti. Kabul ederse fotoğraf gönderebileceksin.',
+    uyari: r.izin === 'evet' ? '' : 'Request sent. If they accept, you can send photos.',
   }))
 }
 
@@ -571,21 +606,21 @@ async function fotoIzinVer($: E, oda: string, izin: 'evet' | 'hayir') {
 
 async function fotoAyari($: E, al: 'sor' | 'hayir') {
   await api($, '/api/foto-ayar', { al })
-  await update($, ekran, (e: Ekran) => ({ ...e, fotoAl: al, uyari: al === 'hayir' ? 'Artık kimseden fotoğraf almıyorsun.' : 'Fotoğraf istekleri yine sorulacak.' }))
+  await update($, ekran, (e: Ekran) => ({ ...e, fotoAl: al, uyari: al === 'hayir' ? 'You no longer accept photos from anyone.' : 'You’ll be asked about photo requests again.' }))
 }
 
 async function fotoGonder($: E, oda: string, mod: 'tek' | 'kalici', kaynak: string) {
-  await uyar($, 'Fotoğraf hazırlanıyor…')
+  await uyar($, 'Preparing the photo…')
   const { b64, tur } = await fotoHazirla($, kaynak)
   const r = await api($, '/api/foto', { oda, b64, tur, mod })
   await update($, ekran, (e: Ekran) => ({
     ...sohbetGuncelle(e, oda, x => ({
       ...x,
-      mesajlar: [...x.mesajlar, { n: r.n, kim: 'ben' as const, metin: mod === 'tek' ? '📷 Tek gösterimlik fotoğraf' : '📷 Fotoğraf', at: Date.now(), foto: r.foto }].slice(-200),
+      mesajlar: [...x.mesajlar, { n: r.n, kim: 'ben' as const, metin: mod === 'tek' ? '📷 View-once photo' : '📷 Photo', at: Date.now(), foto: r.foto }].slice(-200),
       son: Math.max(x.son, r.n),
     })),
     fotoForm: null,
-    uyari: mod === 'tek' ? 'Tek gösterimlik fotoğraf gönderildi. Açınca silinecek.' : 'Fotoğraf gönderildi.',
+    uyari: mod === 'tek' ? 'View-once photo sent. It’ll be deleted once it’s opened.' : 'Photo sent.',
   }))
 }
 
@@ -603,10 +638,10 @@ async function fotoAc($: E, oda: string, id: string, terminal: boolean) {
   const yol = `${gecici}/asksh-${id}.jpg`
   await calistir($, ['sh', '-c', 'printf %s "$1" | base64 -d > "$2" 2>/dev/null || printf %s "$1" | base64 -D > "$2"', 'sh', f.b64, yol])
   const ac = await calistir($, ['sh', '-c', '(xdg-open "$1" || open "$1") >/dev/null 2>&1 &', 'sh', yol])
-  if (ac.exitCode !== 0) throw new Error('Fotoğraf açılamadı.')
+  if (ac.exitCode !== 0) throw new Error('Couldn’t open the photo.')
   // Tek gösterimlik fotoğrafın dosyası bir dakika sonra silinir.
   $.clock.after(f.mod === 'tek' ? 60_000 : 600_000, () => void calistir($, ['rm', '-rf', gecici]))
-  await uyar($, f.mod === 'tek' ? '🔥 Tek gösterimlik fotoğraf açıldı; bir dakika sonra bilgisayarından da silinecek.' : 'Fotoğraf açıldı.')
+  await uyar($, f.mod === 'tek' ? '🔥 View-once photo opened; it’ll be deleted from your computer in a minute too.' : 'Photo opened.')
 }
 
 async function puanVer($: E, oda: string, puan: 'iyi' | 'kotu') {
@@ -637,7 +672,7 @@ async function engelleriAc($: E) {
 async function engelKaldir($: E, id: string, rumuz: string) {
   await api($, '/api/engel-kaldir', { id })
   const r = await api($, '/api/engeller')
-  await update($, ekran, (e: Ekran) => ({ ...e, liste: r.engeller ?? [], uyari: `${rumuz} için engel kaldırıldı.` }))
+  await update($, ekran, (e: Ekran) => ({ ...e, liste: r.engeller ?? [], uyari: `${rumuz} is unblocked.` }))
 }
 
 async function duzenlemeyeGec($: E) {
@@ -686,50 +721,50 @@ function sar(metin: string, en: number): string {
 
 async function geriBildirimGonder($: E, metin: string, yuzey: string) {
   const m = temiz(metin).trim()
-  if (m.length < 3) throw new Error('Biraz daha yazar mısın? En az 3 karakter.')
+  if (m.length < 3) throw new Error('Could you write a bit more? At least 3 characters.')
   await api($, '/api/geribildirim', { metin: m, yuzey })
-  await update($, ekran, (e: Ekran) => ({ ...e, geriBildirim: false, uyari: 'Teşekkürler! Geri bildirimin bize ulaştı.' }))
+  await update($, ekran, (e: Ekran) => ({ ...e, geriBildirim: false, uyari: 'Thanks! We got your feedback.' }))
 }
 
 const FOTO_KURALLARI = [
-  'Gönderdiğin fotoğraftan yalnızca sen sorumlusun.',
-  'Çıplaklık ya da cinsel içerik, başkasına ait ya da izinsiz çekilmiş görüntüler ve 18 yaşından küçükleri gösteren her türlü görüntü yasaktır. Bildirilen fotoğraflar incelenir; kural ihlalinde erişim kapatılır ve gerekirse yetkililere bildirilir.',
-  'Tek gösterimlik fotoğraf açıldıktan sonra silinir, ama karşındaki ekran görüntüsü alabilir; ask.sh bunu engelleyemez.',
-  'Fotoğraflar gönderilmeden önce küçültülür ve içindeki konum gibi bilgiler silinir.',
+  'You alone are responsible for the photos you send.',
+  'Nudity or sexual content, images that belong to someone else or were taken without consent, and any image showing anyone under 18 are not allowed. Reported photos are reviewed; breaking the rules means losing access and, when needed, a report to the authorities.',
+  'A view-once photo is deleted after it’s opened, but the other person could still take a screenshot; ask.sh can’t prevent that.',
+  'Photos are resized before they’re sent, and details like location are removed.',
 ]
 
 // Fotoğraf mesajının ekranda görünen metni (durumuyla birlikte)
 function fotoMetin(m: Mesaj): string {
   if (!m.foto) return m.metin
-  if (m.foto.mod === 'kalici') return '📷 Fotoğraf'
-  if (m.kim === 'ben') return m.foto.durum === 'goruldu' ? '🔥 Tek gösterimlik fotoğraf · açıldı' : '🔥 Tek gösterimlik fotoğraf · henüz açılmadı'
-  return m.foto.durum === 'goruldu' ? '🔥 Tek gösterimlik fotoğraf · açıldı, silindi' : '🔥 Tek gösterimlik fotoğraf · aşağıdan aç'
+  if (m.foto.mod === 'kalici') return '📷 Photo'
+  if (m.kim === 'ben') return m.foto.durum === 'goruldu' ? '🔥 View-once photo · opened' : '🔥 View-once photo · not opened yet'
+  return m.foto.durum === 'goruldu' ? '🔥 View-once photo · opened, deleted' : '🔥 View-once photo · open it below'
 }
 
 // ---------- yazı modu (telefon / Remote Control: panel çizilmeyen yüzeyler) ----------
 function metinSaat(t: number) {
-  return new Date(t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+  return new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 }
 
 function metinListe(d: Ekran): string {
-  const satirlar = ['ask.sh' + (d.sirada ? ' · yeni biri aranıyor…' : '')]
-  if (!d.sohbetler.length) satirlar.push('Şu an sohbetin yok. Yeni biriyle tanışmak için: /date yeni')
+  const satirlar = ['ask.sh' + (d.sirada ? ' · looking for someone…' : '')]
+  if (!d.sohbetler.length) satirlar.push('No chats right now. To meet someone new: /date new')
   d.sohbetler.forEach((s, i) => {
     const son = s.mesajlar[s.mesajlar.length - 1]
-    const durum = s.bitti && !s.kalici ? 'bitti' : s.karsiYaziyor ? 'yazıyor…' : s.karsiCevrimici ? 'çevrimiçi' : 'çevrimdışı'
+    const durum = s.bitti && !s.kalici ? 'ended' : s.karsiYaziyor ? 'typing…' : s.karsiCevrimici ? 'online' : 'offline'
     const isaret = (s.id === d.aktif ? '›' : ' ') + ` ${i + 1}. ${s.karsi.rumuz}${s.kalici ? ' ★' : ''}${s.okunmamis ? ` ● ${s.okunmamis}` : ''} · ${durum}`
-    satirlar.push(isaret + (son ? `\n     ${son.kim === 'ben' ? 'sen' : s.karsi.rumuz}: ${son.metin.slice(0, 80)}` : ''))
+    satirlar.push(isaret + (son ? `\n     ${son.kim === 'ben' ? 'you' : s.karsi.rumuz}: ${son.metin.slice(0, 80)}` : ''))
   })
-  satirlar.push('', 'Oku: /date oku <no> · Yaz: /date <mesaj> · Yeni: /date yeni · Bağlantıda kal: /date kal')
+  satirlar.push('', 'Open: /date open <no> · Write: /date <message> · New: /date new · Stay connected: /date stay')
   return satirlar.join('\n')
 }
 
 function metinSohbet(s: Sohbet, adet = 12): string {
   const satirlar = [`${s.karsi.rumuz}${s.kalici ? ' ★' : ''}${[ALAN_AD[s.karsi.alan ?? ''], RUH_AD[s.karsi.ruh ?? '']].filter(Boolean).map(x => ' · ' + x).join('')}`]
-  if (!s.mesajlar.length) satirlar.push('Henüz mesaj yok. Bir selam iyi bir başlangıç: /date selam!')
-  for (const m of s.mesajlar.slice(-adet)) satirlar.push(`${metinSaat(m.at)}  ${m.kim === 'ben' ? 'sen' : s.karsi.rumuz}: ${fotoMetin(m)}${m.foto ? ' (bilgisayardan açılır)' : ''}${m.durum === 'hata' ? ' (gönderilemedi)' : ''}`)
-  if (s.bitti && !s.kalici) satirlar.push(s.bitti.ben ? '— Sohbeti bitirdin.' : `— ${ayrilis(s.karsi.rumuz, s.bitti.neden)}`)
-  if (!s.kalici && s.kalO && !s.kalBen) satirlar.push(`★ ${s.karsi.rumuz} bağlantıda kalmak istiyor. Kabul: /date kal`)
+  if (!s.mesajlar.length) satirlar.push('No messages yet. A hello is a good start: /date hi!')
+  for (const m of s.mesajlar.slice(-adet)) satirlar.push(`${metinSaat(m.at)}  ${m.kim === 'ben' ? 'you' : s.karsi.rumuz}: ${fotoMetin(m)}${m.foto ? ' (open it on your computer)' : ''}${m.durum === 'hata' ? ' (not sent)' : ''}`)
+  if (s.bitti && !s.kalici) satirlar.push(s.bitti.ben ? '— You ended the chat.' : `— ${ayrilis(s.karsi.rumuz, s.bitti.neden)}`)
+  if (!s.kalici && s.kalO && !s.kalBen) satirlar.push(`★ ${s.karsi.rumuz} wants to stay connected. Accept: /date stay`)
   return satirlar.join('\n')
 }
 
@@ -737,8 +772,8 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'date',
-      description: 'ask.sh — çalışırken biriyle tanış, yan panelde sohbet et',
-      argumentHint: '[mesaj | yeni | sohbetler | bitir | engelle | bildir | ayrıl | yardım]',
+      description: 'ask.sh — meet someone while you code, chat in the side panel',
+      argumentHint: '[message | new | chats | end | block | report | leave | help]',
     } as any)
     void surumKontrol($)
     try {
@@ -769,28 +804,31 @@ export const register: Register = on => {
   on('command.run', { command: 'date' }, async ($, e) => {
     const args = e.args.trim()
     const [ilk, ...kalan] = args.split(/\s+/)
-    const komut = (ilk || '').toLocaleLowerCase('tr')
+    // İngilizce alt komutlar; eski Türkçe adlar sessizce çalışmaya devam eder.
+    const ham = (ilk || '').toLowerCase()
+    const hamTr = (ilk || '').toLocaleLowerCase('tr')
+    const komut = KOMUT_TAKMA[hamTr] ?? KOMUT_TAKMA[ham] ?? ham
     const sonuc = (text: string) => ({ text, isTextDisplayOnly: true as const })
     // Remote Control (telefon, web) paneli çizmeyebilir: oradan gelen komutlara yazıyla cevap ver.
     const uzaktan = (e.origin as any)?.kind === 'bridge'
 
     try {
-      if (uzaktan && (!args || komut === 'oku' || komut === 'liste' || komut === 'sohbetler' || komut === 'kal' || komut === 'git')) {
+      if (uzaktan && (!args || komut === 'open' || komut === 'chats' || komut === 'stay')) {
         await surumKontrol($)
-        if ((await read($, ekran)).guncelleme?.durum === 'zorunlu') return sonuc(`ask.sh'ın yeni sürümü çıktı, devam etmek için güncelle. Terminalde: ${(await read($, ekran)).guncelleme?.komut || GUNCELLEME_KOMUTU} (sonra Claude'u yeniden başlat)`)
+        if ((await read($, ekran)).guncelleme?.durum === 'zorunlu') return sonuc(`A new version of ask.sh is out; update to continue. In your terminal: ${(await read($, ekran)).guncelleme?.komut || GUNCELLEME_KOMUTU} (then restart Claude)`)
         let d = await read($, ekran)
         if (!args && (d.durum === 'kurulum' || (!d.sirada && d.sohbetler.length === 0))) {
-          if (!(await profil($))) return sonuc('Önce bilgisayarında /date ile kurulumu yap ya da: /date kur <rumuz> <k|e|x> <h|k|e> 18+')
+          if (!(await profil($))) return sonuc('Set up first with /date on your computer, or: /date setup <nickname> <w|m|x> <w|m|a> 18+')
           await sirayaGir($)
         } else await yokla($)
         await yoklamayiBaslat($)
         d = await read($, ekran)
-        if (!args || komut === 'liste' || komut === 'sohbetler') return sonuc(metinListe(d))
+        if (!args || komut === 'chats') return sonuc(metinListe(d))
         const no = Number(kalan[0])
         const hedef = no ? d.sohbetler[no - 1] : (d.sohbetler.find(x => x.id === d.aktif) ?? (d.sohbetler.length === 1 ? d.sohbetler[0] : undefined))
-        if (!hedef) return sonuc('Hangi sohbet? Örnek: /date oku 1\n\n' + metinListe(d))
+        if (!hedef) return sonuc('Which chat? Example: /date open 1\n\n' + metinListe(d))
         await sohbetAc($, hedef.id)
-        if (komut === 'kal') {
+        if (komut === 'stay') {
           await kalIstegi($, hedef.id)
           d = await read($, ekran)
         }
@@ -799,60 +837,63 @@ export const register: Register = on => {
       if (!args) {
         await paneliAc($)
         await surumKontrol($)
-        if ((await read($, ekran)).guncelleme?.durum === 'zorunlu') return sonuc(`ask.sh'ın yeni sürümü çıktı, devam etmek için güncelle. Terminalde: ${(await read($, ekran)).guncelleme?.komut || GUNCELLEME_KOMUTU} (sonra Claude'u yeniden başlat)`)
+        if ((await read($, ekran)).guncelleme?.durum === 'zorunlu') return sonuc(`A new version of ask.sh is out; update to continue. In your terminal: ${(await read($, ekran)).guncelleme?.komut || GUNCELLEME_KOMUTU} (then restart Claude)`)
         const d = await read($, ekran)
         if (d.durum === 'kurulum' || (!d.sirada && d.sohbetler.length === 0)) await sirayaGir($)
-        return sonuc('ask.sh açıldı.')
+        return sonuc('ask.sh is open.')
       }
-      if (komut === 'yardım' || komut === 'yardim' || komut === 'help') {
+      if (komut === 'help') {
         return sonuc(
           [
-            'ask.sh — çalışırken biriyle tanış.',
+            'ask.sh — meet someone while you code.',
             '',
-            '  /date                  paneli aç, tanışmaya başla',
-            '  /date <mesaj>          açık sohbete mesaj gönder (panelden de yazabilirsin)',
-            '  /date yeni             sohbetlerin sürerken yeni biriyle tanış',
-            '  /date sohbetler        sohbet listesine dön',
-            '  /date oku <no>         (telefonda) o sohbetin son mesajlarını göster',
-            '  /date kal              (telefonda) açık sohbet için bağlantıda kal',
-            '  /date bitir            açık sohbetten ayrıl (ikiniz de ayrılınca konuşma silinir; kalıcı bağlantıyı siler)',
-            '  /date engelle          açık sohbetteki kişiyle bir daha karşılaşma',
-            '  /date bildir [neden]   rahatsız edeni bildir',
-            '  /date engellediklerim  engellediklerini gör, istersen engeli kaldır',
-            '  /date geri-bildirim <metin>  bize öneri, hata ya da düzeltme yaz',
-            '  /date ayrıl            sıradan sohbetleri bitir (kalıcı bağlantılar durur)',
-            '  /date sürüm            sürümünü ve güncelleme olup olmadığını göster',
-            '  /date kur <rumuz> <k|e|x> <h|k|e> 18+   hızlı kurulum: cinsiyetin, kimlerle; 18+ ile yaşını onaylarsın',
-            '  /date profil <ad>      bu pencereye ayrı bir kimlik ver',
+            '  /date                  open the panel and start meeting people',
+            '  /date <message>        send a message to the open chat (you can also type in the panel)',
+            '  /date new              meet someone new while your chats continue',
+            '  /date chats            back to the chat list',
+            '  /date open <no>        open that chat (on your phone: shows its latest messages)',
+            '  /date stay             ask to stay connected in the open chat',
+            '  /date end              leave the open chat (deleted once you both leave; deletes a connection)',
+            '  /date block            never run into the person in the open chat again',
+            '  /date report [reason]  report someone who bothers you',
+            '  /date blocked          see who you blocked, unblock if you like',
+            '  /date feedback <text>  send us an idea, a bug or a fix',
+            '  /date leave            end your regular chats (connections stay)',
+            '  /date version          show your version and whether an update is out',
+            '  /date setup <nickname> <w|m|x> <w|m|a> 18+   quick setup: your gender (woman, man, prefer not to say), who to meet (women, men, anyone); 18+ confirms your age',
+            '  /date profile <name>   give this window a separate identity',
             '',
-            'Karşındakinin yazdıkları yalnızca panelde görünür; Claude onları hiç okumaz.',
+            'What the other person writes only shows in the panel; Claude never reads it.',
           ].join('\n'),
         )
       }
-      if (komut === 'sürüm' || komut === 'surum' || komut === 'version') {
+      if (komut === 'version') {
         await surumKontrol($)
         const g = (await read($, ekran)).guncelleme
         return sonuc(
           g
-            ? `ask.sh ${SURUM}. Yeni sürüm: ${g.son}. Güncellemek için terminalde: ${g.komut} (sonra Claude'u yeniden başlat)`
-            : `ask.sh ${SURUM}. En güncel sürümdesin.`,
+            ? `ask.sh ${SURUM}. New version: ${g.son}. To update, run this in your terminal: ${g.komut} (then restart Claude)`
+            : `ask.sh ${SURUM}. You’re up to date.`,
         )
       }
-      if (komut === 'kur') {
-        const [rumuz, ben, araHam, onay] = kalan
-        const ara = araHam === 'h' ? 'x' : araHam
+      if (komut === 'setup') {
+        const [rumuz, benHam, araHam, onay] = kalan
+        // setup: w|m|x ve w|m|a; eski kur: k|e|x ve h|k|e. İçeride hep k/e/x.
+        const eski = hamTr === 'kur'
+        const ben = eski ? benHam : ({ w: 'k', m: 'e', x: 'x' } as Record<string, string>)[(benHam ?? '').toLowerCase()]
+        const ara = eski ? (araHam === 'h' ? 'x' : araHam) : ({ w: 'k', m: 'e', a: 'x' } as Record<string, string>)[(araHam ?? '').toLowerCase()]
         if (!rumuz || !RUMUZ.test(rumuz) || !/^[kex]$/.test(ben ?? '') || !/^[kex]$/.test(ara ?? '') || onay !== '18+')
           return sonuc(
-            'Kullanım: /date kur <rumuz> <k|e|x> <h|k|e> 18+\n' +
+            'Usage: /date setup <nickname> <w|m|x> <w|m|a> 18+\n' +
               RUMUZ_UYARI +
-              '\nSondaki 18+ ile 18 yaşında ya da daha büyük olduğunu onaylarsın. Kurallar: nazik ol, kişisel bilgi paylaşma, rahatsız olursan bitir, engelle ya da bildir.',
+              '\nw|m|x is your gender (woman, man, prefer not to say); w|m|a is who you want to meet (women, men, anyone). The final 18+ confirms you’re 18 or older. Rules: be kind, don’t share personal info, and if something feels off, end the chat, block or report.',
           )
         await kaydet($, { rumuz, ben: ben as Cins, ara: ara as Cins })
-        return sonuc(`Hazırsın, ${rumuz}. /date ile başla.`)
+        return sonuc(`You’re all set, ${rumuz}. Start with /date.`)
       }
-      if (komut === 'profil') {
+      if (komut === 'profile') {
         const ad = (kalan[0] || '').toLocaleLowerCase('tr')
-        if (ad && !/^[a-z0-9_-]{1,20}$/.test(ad)) return sonuc('Profil adında a-z, 0-9, _ ve - kullanabilirsin.')
+        if (ad && !/^[a-z0-9_-]{1,20}$/.test(ad)) return sonuc('Profile names can use a-z, 0-9, _ and -.')
         const id = await $.session.id()
         if (!ad || ad === 'varsayilan') await $.store.delete('yuva:' + id)
         else await $.store.set('yuva:' + id, ad)
@@ -860,59 +901,76 @@ export const register: Register = on => {
         await update($, ekran, () => BOS_EKRAN)
         const p = await profil($)
         await update($, form, () => ({ rumuz: '', ben: 'x' as Cins, ara: 'x' as Cins, alan: '', ruh: '', ...p, adim: 0 }))
-        return sonuc(`Bu pencere artık "${ad || 'varsayilan'}" kimliğini kullanıyor${p ? ` (${p.rumuz})` : ''}. /date ile başla.`)
+        return sonuc(`This window now uses the "${!ad || ad === 'varsayilan' ? 'default' : ad}" profile${p ? ` (${p.rumuz})` : ''}. Start with /date.`)
       }
-      if (komut === 'sunucu') {
+      if (komut === 'server') {
         if (kalan[0]) await $.store.set(await anahtar($, 'sunucu'), kalan[0])
         else await $.store.delete(await anahtar($, 'sunucu'))
-        return sonuc('sunucu: ' + (await sunucu($)))
+        return sonuc('server: ' + (await sunucu($)))
       }
-      if (komut === 'geri-bildirim' || komut === 'geribildirim' || komut === 'öneri' || komut === 'oneri') {
+      if (komut === 'feedback') {
         const metin = kalan.join(' ')
         if (!metin) {
           await paneliAc($)
           await update($, ekran, (x: Ekran) => ({ ...x, geriBildirim: true, aktif: null }))
-          return sonuc('Geri bildirim formu panelde. Ya da doğrudan: /date geri-bildirim <yazın>')
+          return sonuc('The feedback form is in the panel. Or send it directly: /date feedback <your text>')
         }
         await geriBildirimGonder($, metin, uzaktan ? 'telefon' : 'komut')
-        return sonuc('Teşekkürler! Geri bildirimin bize ulaştı.')
+        return sonuc('Thanks! We got your feedback.')
       }
-      if (komut === 'engellediklerim' || komut === 'engeller') {
+      if (komut === 'blocked') {
         await paneliAc($)
         await engelleriAc($)
-        return sonuc('Engellediklerin panelde.')
+        return sonuc('Your blocked list is in the panel.')
       }
-      if (komut === 'yeni') {
+      if (komut === 'new') {
         await paneliAc($)
         await sirayaGir($)
-        return sonuc('Sana uygun birini arıyoruz; sohbetlerin sürüyor.')
+        return sonuc('Looking for someone for you; your other chats stay open.')
       }
-      if (komut === 'sohbetler') {
+      if (komut === 'chats') {
         await paneliAc($)
         await sohbetAc($, null)
-        return sonuc('Sohbetlerin panelde.')
+        return sonuc('Your chats are in the panel.')
       }
-      if (komut === 'ayrıl' || komut === 'ayril' || komut === 'çık' || komut === 'cik') {
+      if (komut === 'leave') {
         await ayril($)
-        return sonuc('Sıradan sohbetlerin bitti. Kalıcı bağlantıların duruyor. Görüşmek üzere!')
+        return sonuc('Your regular chats have ended. Your connections stay. See you soon!')
       }
       const d = await read($, ekran)
       const acik = d.sohbetler.find(s => s.id === d.aktif) ?? (d.sohbetler.filter(s => !s.bitti || s.kalici).length === 1 ? d.sohbetler.find(s => !s.bitti || s.kalici) : undefined)
-      const es: Record<string, Eylem> = { bitir: 'bitir', engelle: 'engelle', bildir: 'sikayet', şikayet: 'sikayet', sikayet: 'sikayet' }
-      if (es[komut]) {
-        if (!acik) return sonuc('Önce panelden bir sohbet aç.')
-        await eylem($, es[komut]!, acik.id, kalan.join(' '))
-        return sonuc({ bitir: acik.kalici ? 'Bağlantıyı sildin; konuşma ikiniz için de silindi.' : acik.bitti ? 'Konuşma silindi.' : 'Sohbetten ayrıldın. O da ayrılınca konuşma tamamen silinir.', engelle: 'Engelledin.', sikayet: 'Bildirimin alındı, teşekkürler.', kapat: '' }[es[komut]!])
+      // Bilgisayarda da: "/date open 2" sohbeti panelde açar, "/date stay" bağlantı isteği yollar
+      // (yoksa bu kelimeler karşı tarafa mesaj olarak giderdi).
+      if (komut === 'open') {
+        const no = Number(kalan[0])
+        const hedef = no ? d.sohbetler[no - 1] : undefined
+        if (!hedef) return sonuc('Which chat? Example: /date open 1 (numbers follow the chat list).')
+        await paneliAc($)
+        await sohbetAc($, hedef.id)
+        return sonuc(`Opened your chat with ${hedef.karsi.rumuz} in the panel.`)
       }
-      if (!acik || (acik.bitti && !acik.kalici)) return sonuc('Şu an açık bir sohbetin yok. Panelden bir sohbet seç ya da /date ile başla.')
+      if (komut === 'stay') {
+        if (!acik || acik.bitti) return sonuc('Open a chat in the panel first.')
+        if (acik.kalici) return sonuc(`You’re already connected with ${acik.karsi.rumuz}.`)
+        if (acik.kalBen) return sonuc(`Request already sent. Waiting for ${acik.karsi.rumuz} ★`)
+        await kalIstegi($, acik.id)
+        return sonuc(acik.kalO ? `You’re now connected with ${acik.karsi.rumuz} ★` : `Request sent. If ${acik.karsi.rumuz} says yes too, you’ll stay connected ★`)
+      }
+      const es: Record<string, Eylem> = { end: 'bitir', block: 'engelle', report: 'sikayet' }
+      if (es[komut]) {
+        if (!acik) return sonuc('Open a chat in the panel first.')
+        await eylem($, es[komut]!, acik.id, kalan.join(' '))
+        return sonuc({ bitir: acik.kalici ? 'You deleted the connection; the chat is gone for both of you.' : acik.bitti ? 'Chat deleted.' : 'You left the chat. It’ll be fully deleted once they leave too.', engelle: 'Blocked.', sikayet: 'Report received, thanks.', kapat: '' }[es[komut]!])
+      }
+      if (!acik || (acik.bitti && !acik.kalici)) return sonuc('You don’t have an open chat right now. Pick one in the panel or start with /date.')
       await gonder($, acik.id, args)
       if (uzaktan) {
         await yokla($)
         const sonra = (await read($, ekran)).sohbetler.find(x => x.id === acik.id)
         const u = (await read($, ekran)).uyari
-        return sonuc((u ? u + '\n\n' : '') + (sonra ? metinSohbet(sonra, 6) : 'Mesajın gönderildi.'))
+        return sonuc((u ? u + '\n\n' : '') + (sonra ? metinSohbet(sonra, 6) : 'Message sent.'))
       }
-      return sonuc('Mesajın gönderildi.')
+      return sonuc('Message sent.')
     } catch (err: any) {
       return sonuc(temiz(err?.message))
     }
@@ -957,7 +1015,7 @@ export const register: Register = on => {
     // Rumuzdan doğan avatar: masaüstünde Svg, terminalde Raster; eski Claude'da renkli işaret.
     const Avatar = (rumuz: string, anahtarAd: string, cins?: string) => {
       const renk = kisiRenk(rumuz, cins)
-      if (zengin && ogeler.Svg) return <ogeler.Svg key={anahtarAd} source={avatarSvg(rumuz, renk)} alt={`${rumuz} avatarı`} width={30} height={30} />
+      if (zengin && ogeler.Svg) return <ogeler.Svg key={anahtarAd} source={avatarSvg(rumuz, renk)} alt={`${rumuz}’s avatar`} width={30} height={30} />
       if (zengin && ogeler.Raster) {
         const r = avatarRaster(rumuz, renk)
         return <ogeler.Raster key={anahtarAd} columns={r.columns} rows={r.rows} cells={r.cells} />
@@ -976,7 +1034,7 @@ export const register: Register = on => {
     const tat = (k: { alan?: string; ruh?: string }) => [ALAN_AD[k.alan ?? ''], RUH_AD[k.ruh ?? '']].filter(Boolean).join(' · ')
 
     const anaEkran = d.durum === 'ana' && !d.aktif && !d.liste
-    const sayac = (anaEkran || d.durum === 'kurulum') && d.cevrimici >= 5 ? `şu an ${d.cevrimici} kişi burada` : ''
+    const sayac = (anaEkran || d.durum === 'kurulum') && d.cevrimici >= 5 ? `${d.cevrimici} people here right now` : ''
     const ust = (
       <Box flexDirection="row" justifyContent="space-between" alignItems="center">
         <Text {...BASLIK_S}>
@@ -988,7 +1046,7 @@ export const register: Register = on => {
     const eskiNot =
       !zengin && o.surum ? (
         <Text dimColor>
-          Daha şık bir görünüm için {mobil ? 'bilgisayarındaki Claude Code’u' : masaustu ? 'Claude masaüstü uygulamasını' : "Claude Code'u"} güncelle (sende {o.surum}, en az {ZENGIN_SURUM}).
+          For a nicer look, update {mobil ? 'Claude Code on your computer' : masaustu ? 'the Claude desktop app' : 'Claude Code'} (you have {o.surum}, need at least {ZENGIN_SURUM}).
         </Text>
       ) : null
     const uyari = d.uyari ? (
@@ -1010,14 +1068,14 @@ export const register: Register = on => {
         <Box flexDirection="column" gap={1}>
           {ust}
           <Box flexDirection="column" gap={1} borderStyle="round" borderColor={TURUNCU} paddingX={2} paddingY={masaustu ? 1 : 0}>
-            <Text {...BASLIK_S}>ask.sh'ı güncellemen gerekiyor</Text>
+            <Text {...BASLIK_S}>You need to update ask.sh</Text>
             <Text dimColor>
-              Yeni sürüm çıktı{g.son ? ` (${g.son})` : ''}, seninki {SURUM}. Devam etmek için terminalde şunu çalıştır, sonra Claude'u yeniden başlat. Bu komut otomatik güncellemeyi de açar, bir daha elle uğraşmazsın:
+              A new version is out{g.son ? ` (${g.son})` : ''}, you have {SURUM}. To continue, run this in your terminal, then restart Claude. It also turns on auto-update, so you won’t have to do this by hand again:
             </Text>
             <Text color={TURUNCU}>{g.komut}</Text>
           </Box>
           <Box flexDirection="row" gap={1}>
-            <Button key="kopyala" variant="primary" label="Komutu kopyala" onPress={() => komutKopyala(g.komut)} />
+            <Button key="kopyala" variant="primary" label="Copy command" onPress={() => komutKopyala(g.komut)} />
           </Box>
         </Box>
       )
@@ -1027,14 +1085,14 @@ export const register: Register = on => {
       const okunmamis = okunmamisToplam(d)
       const yazan = d.sohbetler.find(x => x.karsiYaziyor)
       const ozet = okunmamis
-        ? `💬 ${okunmamis} okunmamış`
+        ? `💬 ${okunmamis} unread`
         : yazan
-          ? `${yazan.karsi.rumuz} yazıyor…`
+          ? `${yazan.karsi.rumuz} is typing…`
           : d.sirada
-            ? 'biri aranıyor…'
+            ? 'looking for someone…'
             : d.sohbetler.length
-              ? `${d.sohbetler.length} sohbet`
-              : 'sakin'
+              ? adet(d.sohbetler.length, 'chat')
+              : 'quiet'
       return (
         <Box flexDirection="column">
           <Text {...KALIN}>
@@ -1051,10 +1109,10 @@ export const register: Register = on => {
         <Box flexDirection="row" justifyContent="space-between" alignItems="center" gap={1}>
           <Text>
             <Text color={TURUNCU}>↑ </Text>
-            <Text dimColor>Yeni sürüm {g.son}: </Text>
+            <Text dimColor>New version {g.son}: </Text>
             <Text>{g.komut}</Text>
           </Text>
-          <Button key="kopyala-serit" plain label="Kopyala" onPress={() => komutKopyala(g.komut)} />
+          <Button key="kopyala-serit" plain label="Copy" onPress={() => komutKopyala(g.komut)} />
         </Box>
       ) : null
 
@@ -1067,9 +1125,9 @@ export const register: Register = on => {
       return (
         <Box flexDirection="column" gap={1}>
           {ust}
-          {ogeler.Svg ? <ogeler.Svg key="foto-goruntu" source={kaynak} alt="Gelen fotoğraf" width={W} height={Math.round(W * 0.75)} /> : <Text>Fotoğraf bu ekranda gösterilemiyor.</Text>}
-          <Text dimColor>{fg.mod === 'tek' ? '🔥 Tek gösterimlik: kapatınca bir daha açılamaz.' : '📌 Bu fotoğraf sohbette kalıyor.'}</Text>
-          <Button key="foto-kapat" variant="primary" label="Kapat" onPress={kapat} />
+          {ogeler.Svg ? <ogeler.Svg key="foto-goruntu" source={kaynak} alt="Incoming photo" width={W} height={Math.round(W * 0.75)} /> : <Text>This photo can’t be shown on this screen.</Text>}
+          <Text dimColor>{fg.mod === 'tek' ? '🔥 View once: it can’t be opened again after you close it.' : '📌 This photo stays in the chat.'}</Text>
+          <Button key="foto-kapat" variant="primary" label="Close" onPress={kapat} />
         </Box>
       )
     }
@@ -1086,18 +1144,18 @@ export const register: Register = on => {
             {ust}
             {kart(
               <Box flexDirection="column" gap={siki ? 0 : 1}>
-                <Text {...BASLIK_S}>Fotoğraf göndermeden önce</Text>
+                <Text {...BASLIK_S}>Before you send a photo</Text>
                 {FOTO_KURALLARI.map((k, i) => (
                   <Text key={'kural-' + i}>• {k}</Text>
                 ))}
               </Box>,
             )}
             <Box flexDirection="row" gap={2} flexWrap="wrap">
-              <Button key="foto-kabul" variant="primary" label="Okudum, kabul ediyorum" onPress={() => void guvenli($, async () => {
+              <Button key="foto-kabul" variant="primary" label="I’ve read this and I agree" onPress={() => void guvenli($, async () => {
                 await $.store.set(await anahtar($, 'fotoKabul'), true)
                 await update($, ekran, (x: Ekran) => ({ ...x, fotoKabul: true }))
               })} />
-              <Button key="foto-vazgec" plain label="Vazgeç" onPress={kapat} />
+              <Button key="foto-vazgec" plain label="Cancel" onPress={kapat} />
             </Box>
           </Box>
         )
@@ -1107,17 +1165,17 @@ export const register: Register = on => {
           {ust}
           {kart(
             <Box flexDirection="column" gap={siki ? 0 : 1}>
-              <Text {...BASLIK_S}>{hedefS?.karsi.rumuz ?? ''} kişisine fotoğraf</Text>
+              <Text {...BASLIK_S}>Photo for {hedefS?.karsi.rumuz ?? ''}</Text>
               <Box flexDirection="row" gap={2} flexWrap="wrap">
-                <Button key="mod-tek" plain={ff.mod !== 'tek' ? true : undefined} variant={ff.mod === 'tek' ? 'primary' : undefined} label="🔥 Tek gösterim" onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, fotoForm: { ...ff, mod: 'tek' as const } }))} />
-                <Button key="mod-kalici" plain={ff.mod !== 'kalici' ? true : undefined} variant={ff.mod === 'kalici' ? 'primary' : undefined} label="📌 Sohbette kalsın" onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, fotoForm: { ...ff, mod: 'kalici' as const } }))} />
+                <Button key="mod-tek" plain={ff.mod !== 'tek' ? true : undefined} variant={ff.mod === 'tek' ? 'primary' : undefined} label="🔥 View once" onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, fotoForm: { ...ff, mod: 'tek' as const } }))} />
+                <Button key="mod-kalici" plain={ff.mod !== 'kalici' ? true : undefined} variant={ff.mod === 'kalici' ? 'primary' : undefined} label="📌 Keep in chat" onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, fotoForm: { ...ff, mod: 'kalici' as const } }))} />
               </Box>
-              <Text dimColor>{ff.mod === 'tek' ? 'Bir kez açılır, sonra herkesten silinir.' : 'Bağlantınız durdukça sohbette kalır.'}</Text>
-              <Button key="foto-pano" label="Panodaki görüntüyü gönder" onPress={() => gonderKaynak('pano')} />
-              <Input key="foto-yol" label="ya da dosya yolu" placeholder="~/Resimler/ekran.png" submitLabel="Gönder" onSubmit={(v: string) => v.trim() && gonderKaynak(v.trim())} />
+              <Text dimColor>{ff.mod === 'tek' ? 'Opens once, then it’s deleted for everyone.' : 'Stays in the chat as long as you stay connected.'}</Text>
+              <Button key="foto-pano" label="Send image from clipboard" onPress={() => gonderKaynak('pano')} />
+              <Input key="foto-yol" label="or a file path" placeholder="~/Pictures/screenshot.png" submitLabel="Send" onSubmit={(v: string) => v.trim() && gonderKaynak(v.trim())} />
             </Box>,
           )}
-          <Button key="foto-vazgec" plain label="Vazgeç" onPress={kapat} />
+          <Button key="foto-vazgec" plain label="Cancel" onPress={kapat} />
           {uyari}
         </Box>
       )
@@ -1134,21 +1192,21 @@ export const register: Register = on => {
             {ust}
             {kart(
               <Box flexDirection="column" gap={siki ? 0 : 1}>
-                <Text {...BASLIK_S}>ask.sh'tan çıkıyorsun</Text>
+                <Text {...BASLIK_S}>You’re leaving ask.sh</Text>
                 <Text>
                   {silinecek
-                    ? `Bağlantıda kalmadığın ${silinecek} sohbetten ayrılacaksın. Karşındakiler de ayrılınca bu konuşmalar tamamen silinir.`
-                    : 'Sıradan çıkacaksın.'}
-                  {kalici ? ` ★ ${kalici} kalıcı bağlantın durur.` : ''}
+                    ? `You’ll leave ${adet(silinecek, 'chat')} you’re not connected in. Once the others leave too, ${silinecek === 1 ? 'it’s' : 'they’re'} fully deleted.`
+                    : 'You’ll leave the queue.'}
+                  {kalici ? ` ★ Your ${adet(kalici, 'connection')} ${kalici === 1 ? 'stays' : 'stay'}.` : ''}
                 </Text>
               </Box>,
             )}
             <Box flexDirection="row" gap={2} flexWrap="wrap">
-              <Button key="ayril-evet" variant="primary" label="Çık" onPress={() => void guvenli($, async () => {
+              <Button key="ayril-evet" variant="primary" label="Sign out" onPress={() => void guvenli($, async () => {
                 await update($, ekran, (x: Ekran) => ({ ...x, ayrilOnay: null }))
                 await ayril($)
               })} />
-              <Button key="ayril-vazgec" plain label="Vazgeç" onPress={vazgec} />
+              <Button key="ayril-vazgec" plain label="Cancel" onPress={vazgec} />
             </Box>
           </Box>
         )
@@ -1157,15 +1215,15 @@ export const register: Register = on => {
       if (hs) {
         const oGitti = !!hs.bitti && !hs.bitti.ben && !hs.kalici
         const baslik = hs.kalici
-          ? `${hs.karsi.rumuz} ile bağlantını siliyorsun`
+          ? `You’re deleting your connection with ${hs.karsi.rumuz}`
           : oGitti
-            ? `${hs.karsi.rumuz} zaten ayrıldı`
-            : `${hs.karsi.rumuz} ile sohbetten ayrılıyorsun`
+            ? `${hs.karsi.rumuz} already left`
+            : `You’re leaving the chat with ${hs.karsi.rumuz}`
         const aciklama = hs.kalici
-          ? 'Bağlantı ve tüm mesajlar ikiniz için de silinir, geri getirilemez.'
+          ? 'The connection and all its messages are deleted for both of you. This can’t be undone.'
           : oGitti
-            ? 'Sen de çıkarsan bu konuşma tamamen silinir, geri getirilemez.'
-            : 'Bağlantıda kalmadığınız için, ikiniz de ayrılınca bu konuşma tamamen silinir. Ayrılmadan önce son bir mesaj yazabilir ya da bağlantıda kalmayı önerebilirsin.'
+            ? 'If you leave too, this chat is fully deleted. This can’t be undone.'
+            : 'You’re not connected, so this chat is fully deleted once you both leave. Before you go, you can send one last message or offer to stay connected.'
         const evet = () =>
           void guvenli($, async () => {
             await update($, ekran, (x: Ekran) => ({ ...x, ayrilOnay: null }))
@@ -1184,15 +1242,15 @@ export const register: Register = on => {
               </Box>,
             )}
             <Box flexDirection="row" gap={2} flexWrap="wrap">
-              <Button key="ayril-evet" variant="primary" label={hs.kalici ? 'Bağlantıyı sil' : oGitti ? 'Sil ve çık' : 'Ayrıl'} onPress={evet} />
-              {!hs.kalici && !oGitti ? <Button key="son-mesaj" plain label="Son bir mesaj yaz" onPress={vazgec} /> : null}
+              <Button key="ayril-evet" variant="primary" label={hs.kalici ? 'Delete connection' : oGitti ? 'Delete and leave' : 'Leave'} onPress={evet} />
+              {!hs.kalici && !oGitti ? <Button key="son-mesaj" plain label="Write one last message" onPress={vazgec} /> : null}
               {!hs.kalici && !oGitti && !hs.kalBen ? (
-                <Button key="kal-oner" plain label="★ Bağlantıda kalmayı öner" onPress={() => void guvenli($, async () => {
+                <Button key="kal-oner" plain label="★ Offer to stay connected" onPress={() => void guvenli($, async () => {
                   await update($, ekran, (x: Ekran) => ({ ...x, ayrilOnay: null }))
                   await kalIstegi($, hs.id)
                 })} />
               ) : null}
-              <Button key="ayril-vazgec" plain label="Vazgeç" onPress={vazgec} />
+              <Button key="ayril-vazgec" plain label="Cancel" onPress={vazgec} />
             </Box>
           </Box>
         )
@@ -1207,19 +1265,19 @@ export const register: Register = on => {
           {ust}
           {kart(
             <Box flexDirection="column" gap={siki ? 0 : 1}>
-              <Text {...BASLIK_S}>Bize bir şey söyle</Text>
-              <Text dimColor>Hata, öneri, beğenmediğin bir yer… Doğrudan bize ulaşır. Rumuzun ve sürümün de eklenir.</Text>
+              <Text {...BASLIK_S}>Tell us something</Text>
+              <Text dimColor>A bug, an idea, something you don’t like… It comes straight to us. Your nickname and version are included.</Text>
               <Input
                 key="geri-bildirim-yazi"
-                placeholder="ör. balonlar çok küçük, şu düğme kafa karıştırıyor…"
-                submitLabel="Gönder"
+                placeholder="e.g. the bubbles are too small, this button is confusing…"
+                submitLabel="Send"
                 autoFocus
                 {...(zengin ? { rows: 3 } : {})}
                 onSubmit={(v: string) => void guvenli($, () => geriBildirimGonder($, v, String(yuzey)))}
               />
             </Box>,
           )}
-          <Button key="geri-bildirim-kapat" plain label="Vazgeç" onPress={kapat} />
+          <Button key="geri-bildirim-kapat" plain label="Cancel" onPress={kapat} />
           {uyari}
         </Box>
       )
@@ -1234,24 +1292,24 @@ export const register: Register = on => {
           {kart(
             <Box flexDirection="column" gap={1}>
               <Box flexDirection="column">
-                <Text {...BASLIK_S}>Engellediklerin</Text>
-                <Text dimColor>Engelini kaldırdığın kişiyle yeniden eşleşebilirsin; bildirimin de geri çekilir.</Text>
+                <Text {...BASLIK_S}>Blocked people</Text>
+                <Text dimColor>If you unblock someone, you can be matched with them again, and your report is withdrawn.</Text>
               </Box>
-              {d.liste.length === 0 ? <Text dimColor>Kimseyi engellemedin.</Text> : null}
+              {d.liste.length === 0 ? <Text dimColor>You haven’t blocked anyone.</Text> : null}
               {d.liste.map(k => (
                 <Box key={'e' + k.id} flexDirection="row" justifyContent="space-between" alignItems="center" gap={1}>
                   <Text>
                     <Text color={avatar(k.rumuz).renk}>◆ </Text>
                     {Ad(k.rumuz)}
-                    <Text dimColor>{k.bildirildi ? '  bildirdin' : '  engelledin'}</Text>
+                    <Text dimColor>{k.bildirildi ? '  reported' : '  blocked'}</Text>
                   </Text>
-                  <Button key={'kaldir-' + k.id} label="Engeli kaldır" onPress={() => void guvenli($, () => engelKaldir($, k.id, k.rumuz))} />
+                  <Button key={'kaldir-' + k.id} label="Unblock" onPress={() => void guvenli($, () => engelKaldir($, k.id, k.rumuz))} />
                 </Box>
               ))}
             </Box>,
           )}
           <Box flexDirection="row" gap={1}>
-            <Button key="liste-kapat" variant="primary" label="Tamam" onPress={kapat} />
+            <Button key="liste-kapat" variant="primary" label="Done" onPress={kapat} />
           </Box>
           {uyari}
         </Box>
@@ -1274,17 +1332,17 @@ export const register: Register = on => {
       let baslik
       let govde
       if (adim === 0) {
-        baslik = 'Sana nasıl seslenelim?'
+        baslik = 'What should we call you?'
         govde = (
           <Box flexDirection={dar ? 'column' : 'row'} alignItems={dar ? 'flex-start' : 'center'} gap={dar ? 1 : 2}>
             <Box flexGrow={1} flexDirection="column">
-              <Text dimColor>Gerçek adın olmasın. Avatarın bu isimden doğar.</Text>
+              <Text dimColor>Not your real name. Your avatar is generated from it.</Text>
               <Input
                 key="rumuz"
-                label="Rumuz"
-                placeholder="ör. gececi_kedi"
+                label="Nickname"
+                placeholder="e.g. midnight_coder"
                 value={f.rumuz}
-                submitLabel="Devam"
+                submitLabel="Continue"
                 autoFocus
                 onInput={(v: string) => void update($, form, (x: Form) => ({ ...x, rumuz: v }))}
                 onSubmit={(v: string) => rumuzDevam(v)}
@@ -1293,74 +1351,74 @@ export const register: Register = on => {
             {RUMUZ.test(f.rumuz.trim()) && (
               <Box flexDirection="column" alignItems="center">
                 {Avatar(f.rumuz.trim(), 'av-onizleme')}
-                <Text {...KUCUK}>avatarın</Text>
+                <Text {...KUCUK}>your avatar</Text>
               </Box>
             )}
           </Box>
         )
       } else if (adim === 1) {
-        baslik = `Memnun oldum, ${f.rumuz}.`
+        baslik = `Nice to meet you, ${f.rumuz}.`
         govde = (
           <Box flexDirection={siki && !dar ? 'row' : 'column'} gap={siki && !dar ? 4 : 1}>
             <Select
               key="ben"
-              label="Cinsiyetin"
+              label="Your gender"
               autoFocus
               value={f.ben}
               options={[
-                { value: 'k', label: 'Kadın' },
-                { value: 'e', label: 'Erkek' },
-                { value: 'x', label: 'Söylemek istemiyorum' },
+                { value: 'k', label: 'Woman' },
+                { value: 'e', label: 'Man' },
+                { value: 'x', label: 'Prefer not to say' },
               ]}
               onSelect={(v: string) => void update($, form, (x: Form) => ({ ...x, ben: v as Cins }))}
             />
             <Select
               key="ara"
-              label="Kimlerle tanışmak istersin"
+              label="Looking for"
               value={f.ara}
               options={[
-                { value: 'x', label: 'Herkesle' },
-                { value: 'k', label: 'Kadınlarla' },
-                { value: 'e', label: 'Erkeklerle' },
+                { value: 'x', label: 'Anyone' },
+                { value: 'k', label: 'Women' },
+                { value: 'e', label: 'Men' },
               ]}
               onSelect={(v: string) => void update($, form, (x: Form) => ({ ...x, ara: v as Cins }))}
             />
-            <Text dimColor>Cinsiyetin karşındakine renkle görünür: kadın pembe, erkek mavi. Kimlerle tanışmak istediğin görünmez.</Text>
+            <Text dimColor>Others see your gender as a color: pink for women, blue for men. Who you’re looking for stays hidden.</Text>
           </Box>
         )
       } else {
-        baslik = `Her şey hazır, ${f.rumuz}.`
+        baslik = `All set, ${f.rumuz}.`
         govde = (
           <Box flexDirection="column" gap={siki ? 0 : 1}>
             <Box flexDirection={siki && !dar ? 'row' : 'column'} gap={siki && !dar ? 4 : 1}>
               <Select
                 key="alan"
-                label="Alanın (isteğe bağlı)"
+                label="Your field (optional)"
                 value={f.alan ?? ''}
-                options={[{ value: '', label: 'Söylemeyeyim' }, ...Object.entries(ALAN_AD).map(([value, label]) => ({ value, label }))]}
+                options={[{ value: '', label: 'Prefer not to say' }, ...Object.entries(ALAN_AD).map(([value, label]) => ({ value, label }))]}
                 onSelect={(v: string) => void update($, form, (x: Form) => ({ ...x, alan: v }))}
               />
               <Select
                 key="ruh"
-                label="Şu an (isteğe bağlı)"
+                label="Right now (optional)"
                 value={f.ruh ?? ''}
-                options={[{ value: '', label: 'Söylemeyeyim' }, ...Object.entries(RUH_AD).map(([value, label]) => ({ value, label }))]}
+                options={[{ value: '', label: 'Prefer not to say' }, ...Object.entries(RUH_AD).map(([value, label]) => ({ value, label }))]}
                 onSelect={(v: string) => void update($, form, (x: Form) => ({ ...x, ruh: v }))}
               />
             </Box>
-            <Text dimColor>Bunlar karşındakine görünür. Nazik ol, kişisel bilgi paylaşma, rahatsız olursan bitir, engelle ya da bildir.</Text>
+            <Text dimColor>The other person sees these. Be kind, don’t share personal info, and if something feels off, end the chat, block or report.</Text>
           </Box>
         )
       }
 
       const devam =
         adim === 0 ? null : adim === 1 ? (
-          <Button key="devam" variant="primary" label="Devam" onPress={() => void ileri({})} />
+          <Button key="devam" variant="primary" label="Continue" onPress={() => void ileri({})} />
         ) : (
           <Button
             key="basla"
             variant="primary"
-            label="18 yaşındayım ya da daha büyüğüm, başlayalım"
+            label="I’m 18 or older, let’s go"
             onPress={() =>
               void guvenli($, async () => {
                 const x = await read($, form)
@@ -1376,7 +1434,7 @@ export const register: Register = on => {
           {ust}
           {serit}
           {zengin && masaustu && ogeler.Progress ? (
-            <ogeler.Progress label="Kurulum" value={adim + 1} max={3} valueText={`${adim + 1} / 3`} color={TURUNCU} />
+            <ogeler.Progress label="Setup" value={adim + 1} max={3} valueText={`${adim + 1} / 3`} color={TURUNCU} />
           ) : (
             <Text dimColor>
               {adim + 1} / 3{'  '}
@@ -1392,7 +1450,7 @@ export const register: Register = on => {
           )}
           {(adim > 0 || devam) && (
             <Box flexDirection="row" justifyContent="space-between" alignItems="center">
-              {adim > 0 ? <Button key="geri" plain label="Geri" onPress={geri} /> : <Text> </Text>}
+              {adim > 0 ? <Button key="geri" plain label="Back" onPress={geri} /> : <Text> </Text>}
               {devam}
             </Box>
           )}
@@ -1402,7 +1460,7 @@ export const register: Register = on => {
       )
     }
 
-    const saat = (t: number) => new Date(t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+    const saat = (t: number) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
     const aktif = d.sohbetler.find(s => s.id === d.aktif)
 
     // ---------- sohbet listesi ----------
@@ -1412,15 +1470,15 @@ export const register: Register = on => {
         <Box flexDirection="row" justifyContent="space-between" alignItems="center" {...(masaustu ? { borderStyle: 'round', borderColor: GRI_CIZGI, paddingX: 1 } : {})}>
           <Text>
             <Text color={TURUNCU}>● </Text>
-            <Text {...KALIN}>Yeni biri aranıyor…</Text>
-            <Text dimColor>  gelince haber veririz</Text>
+            <Text {...KALIN}>Looking for someone…</Text>
+            <Text dimColor>  we’ll let you know</Text>
           </Text>
-          <Button key="vazgec-ara" plain label="Vazgeç" onPress={() => void guvenli($, () => siradanCik($))} />
+          <Button key="vazgec-ara" plain label="Cancel" onPress={() => void guvenli($, () => siradanCik($))} />
         </Box>
       ) : (
         <Box flexDirection="row" gap={1} alignItems="center">
-          <Button key="ara" variant="primary" label="Yeni biriyle tanış" onPress={() => void guvenli($, () => sirayaGir($))} />
-          {digerleri.length === 0 && <Text dimColor>Şu an kimseyle konuşmuyorsun.</Text>}
+          <Button key="ara" variant="primary" label="Meet someone new" onPress={() => void guvenli($, () => sirayaGir($))} />
+          {digerleri.length === 0 && <Text dimColor>You’re not talking to anyone right now.</Text>}
         </Box>
       )
       const satirSigan = siki ? Math.max(2, govdeSatir - 5 - (serit ? 1 : 0) - (d.uyari ? 3 : 0) - (eskiNot ? 1 : 0)) : 20
@@ -1436,13 +1494,13 @@ export const register: Register = on => {
                 // Sağdaki tek bilgi: okunmamış > yazıyor > sıra sende > bitti.
                 const sag =
                   s.bitti && !s.kalici
-                    ? { yazi: 'bitti', vurgu: false }
+                    ? { yazi: 'ended', vurgu: false }
                     : s.okunmamis > 0
-                      ? { yazi: `● ${s.okunmamis} yeni`, vurgu: true }
+                      ? { yazi: `● ${s.okunmamis} new`, vurgu: true }
                       : s.karsiYaziyor
-                        ? { yazi: 'yazıyor…', vurgu: false }
+                        ? { yazi: 'typing…', vurgu: false }
                         : son?.kim === 'o'
-                          ? { yazi: 'sıra sende', vurgu: false }
+                          ? { yazi: 'your turn', vurgu: false }
                           : null
                 const ac = () => void sohbetAc($, s.id)
                 return (
@@ -1466,32 +1524,32 @@ export const register: Register = on => {
                   </Box>
                 )
               })}
-              {digerleri.length > satirSigan && <Text dimColor>+{digerleri.length - satirSigan} sohbet daha</Text>}
+              {digerleri.length > satirSigan && <Text dimColor>+{adet(digerleri.length - satirSigan, 'more chat')}</Text>}
             </Box>
           )}
           <Box flexDirection="row" alignItems="center" gap={1} flexWrap="wrap">
             {!siki && f.rumuz ? Avatar(f.rumuz, 'av-ben', f.ben) : null}
             <Text dimColor>
-              {f.rumuz} olarak görünüyorsun{tat(f) ? ` · ${tat(f)}` : ''}
+              You appear as {f.rumuz}{tat(f) ? ` · ${tat(f)}` : ''}
             </Text>
-            <Button key="profil" plain label="Bilgilerimi değiştir" onPress={() => void guvenli($, () => duzenlemeyeGec($))} />
-            <Button key="engeller" plain label="Engellediklerim" onPress={() => void guvenli($, () => engelleriAc($))} />
+            <Button key="profil" plain label="Edit my profile" onPress={() => void guvenli($, () => duzenlemeyeGec($))} />
+            <Button key="engeller" plain label="Blocked people" onPress={() => void guvenli($, () => engelleriAc($))} />
             <Button
               key="bildirim-ayar"
               plain
-              label={d.bildirimKapali ? '🔕 Bildirimler kapalı (aç)' : '🔔 Bildirimler açık'}
+              label={d.bildirimKapali ? '🔕 Notifications off (turn on)' : '🔔 Notifications on'}
               onPress={() =>
                 void guvenli($, async () => {
                   const kapali = !d.bildirimKapali
                   await $.store.set(await anahtar($, 'bildirim'), kapali ? 'kapali' : 'acik')
-                  await update($, ekran, (x: Ekran) => ({ ...x, bildirimKapali: kapali, uyari: kapali ? 'Sistem bildirimleri kapandı.' : 'Sistem bildirimleri açıldı.' }))
-                  if (!kapali) void sistemBildirimi($, 'ask.sh', '🔔 Bildirimler açık')
+                  await update($, ekran, (x: Ekran) => ({ ...x, bildirimKapali: kapali, uyari: kapali ? 'System notifications are off.' : 'System notifications are on.' }))
+                  if (!kapali) void sistemBildirimi($, 'ask.sh', '🔔 Notifications on')
                 })
               }
             />
-            <Button key="foto-ayar" plain label={d.fotoAl === 'hayir' ? '📷 Fotoğraf almıyorsun (aç)' : '📷 Fotoğraf: sorarak al'} onPress={() => void guvenli($, () => fotoAyari($, d.fotoAl === 'hayir' ? 'sor' : 'hayir'))} />
-            <Button key="geri-bildirim" plain label="Geri bildirim" onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, geriBildirim: true, uyari: '' }))} />
-            <Button key="cik" plain label="Çıkış" onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, ayrilOnay: 'hepsi' }))} />
+            <Button key="foto-ayar" plain label={d.fotoAl === 'hayir' ? '📷 Not accepting photos (turn on)' : '📷 Photos: ask me first'} onPress={() => void guvenli($, () => fotoAyari($, d.fotoAl === 'hayir' ? 'sor' : 'hayir'))} />
+            <Button key="geri-bildirim" plain label="Feedback" onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, geriBildirim: true, uyari: '' }))} />
+            <Button key="cik" plain label="Sign out" onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, ayrilOnay: 'hepsi' }))} />
           </Box>
           {uyari}
           {eskiNot}
@@ -1515,23 +1573,23 @@ export const register: Register = on => {
           {ust}
           {kart(
             <>
-              <Text {...BASLIK_S}>{karsi} kullanıcısını neden bildiriyorsun?</Text>
-              <Text dimColor>Bildirdiğin kişiyle bir daha eşleşmezsin. Sohbetin son mesajları incelemek için saklanır.</Text>
+              <Text {...BASLIK_S}>Why are you reporting {karsi}?</Text>
+              <Text dimColor>You won’t be matched with them again. The chat’s last messages are kept for review.</Text>
               <Select
                 key="neden"
                 autoFocus
                 options={[
-                  { value: 'taciz', label: 'Taciz ya da hakaret' },
-                  { value: 'cinsel', label: 'İstemediğim cinsel içerik' },
-                  { value: 'resit-degil', label: 'Reşit olmayabilir' },
-                  { value: 'spam', label: 'Spam ya da reklam' },
-                  { value: 'diger', label: 'Başka bir şey' },
+                  { value: 'taciz', label: 'Harassment or insults' },
+                  { value: 'cinsel', label: 'Unwanted sexual content' },
+                  { value: 'resit-degil', label: 'Might be under 18' },
+                  { value: 'spam', label: 'Spam or ads' },
+                  { value: 'diger', label: 'Something else' },
                 ]}
                 onSelect={neden}
               />
             </>,
           )}
-          <Button key="vazgec" plain label="Vazgeç" onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, bildirForm: null }))} />
+          <Button key="vazgec" plain label="Cancel" onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, bildirForm: null }))} />
         </Box>
       )
     }
@@ -1539,11 +1597,11 @@ export const register: Register = on => {
     const kalEtiket = s.kalici
       ? null
       : s.kalO && !s.kalBen
-        ? { label: `★ ${karsi} bağlantıda kalmak istiyor, kabul et`, primary: true }
+        ? { label: `★ ${karsi} wants to stay connected, accept`, primary: true }
         : s.kalBen
-          ? { label: '★ İsteğin gitti', primary: false }
-          : { label: '★ Bağlantıda kal', primary: false }
-    const durumYazi = s.bitti && !s.kalici ? 'sohbet bitti' : s.karsiYaziyor ? 'yazıyor…' : s.karsiCevrimici ? 'çevrimiçi' : s.kalici ? 'çevrimdışı · mesajın onu bekler' : 'çevrimdışı'
+          ? { label: '★ Request sent', primary: false }
+          : { label: '★ Stay connected', primary: false }
+    const durumYazi = s.bitti && !s.kalici ? 'chat ended' : s.karsiYaziyor ? 'typing…' : s.karsiCevrimici ? 'online' : s.kalici ? 'offline · they’ll get your message' : 'offline'
 
     const tuvalYuzeyOn = (yuzey === 'desktop' || yuzey === 'vscode') && zengin && !!ogeler.Svg
     // Yan panelde (dock) üst kısım ve yazma kutusu sabit; aradaki mesaj alanı kayar.
@@ -1589,9 +1647,9 @@ export const register: Register = on => {
       )
       const alt =
         m.durum === 'gidiyor' ? (
-          <Text {...SAAT}>gönderiliyor…</Text>
+          <Text {...SAAT}>sending…</Text>
         ) : m.durum === 'hata' ? (
-          <Text color={TURUNCU}>gönderilemedi</Text>
+          <Text color={TURUNCU}>not sent</Text>
         ) : grupSonu ? (
           <Text {...SAAT}>{saat(m.at)}</Text>
         ) : null
@@ -1607,12 +1665,12 @@ export const register: Register = on => {
         </Box>
       )
     }
-    const buzKiricilar = ['Şu an ne üzerinde çalışıyorsun?', 'Tab mı space mi?', "Bugünün en saçma bug'ı neydi?"]
+    const buzKiricilar = ['What are you working on right now?', 'Tabs or spaces?', 'What’s the weirdest bug you hit today?']
     const eylemler = (
       <Box flexDirection="row" gap={2} flexWrap="wrap">
-        <Button key="bitir" plain label={s.kalici ? 'Bağlantıyı sil' : 'Ayrıl'} onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, ayrilOnay: s.id }))} />
-        <Button key="engelle" plain label="Engelle" onPress={() => void guvenli($, () => eylem($, 'engelle', s.id))} />
-        <Button key="sikayet" plain label="Bildir" onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, bildirForm: s.id }))} />
+        <Button key="bitir" plain label={s.kalici ? 'Delete connection' : 'Leave'} onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, ayrilOnay: s.id }))} />
+        <Button key="engelle" plain label="Block" onPress={() => void guvenli($, () => eylem($, 'engelle', s.id))} />
+        <Button key="sikayet" plain label="Report" onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, bildirForm: s.id }))} />
         {kalEtiket && !s.bitti ? (
           <Button key="kal" variant={kalEtiket.primary ? 'primary' : undefined} plain={kalEtiket.primary ? undefined : true} label={kalEtiket.label} onPress={() => void guvenli($, () => kalIstegi($, s.id))} />
         ) : null}
@@ -1624,7 +1682,7 @@ export const register: Register = on => {
         <Box flexDirection="column" flexShrink={0} gap={siki ? 0 : 1}>
         <Box flexDirection="row" justifyContent="space-between" alignItems="center">
           <Box flexDirection="row" alignItems="center" gap={1}>
-            <Button key="geri-liste" plain label={'← Sohbetler' + (digerOkunmamis > 0 ? ` ● ${digerOkunmamis}` : '')} onPress={() => void sohbetAc($, null)} />
+            <Button key="geri-liste" plain label={'← Chats' + (digerOkunmamis > 0 ? ` ● ${digerOkunmamis}` : '')} onPress={() => void sohbetAc($, null)} />
             {masaustu ? Avatar(karsi, 'av-karsi', s.karsi.cins) : <Text color={kisiRenk(karsi, s.karsi.cins)}>◆</Text>}
             <Box flexDirection={dar ? 'column' : 'row'}>
               <Text>
@@ -1647,14 +1705,14 @@ export const register: Register = on => {
           {...(sabit ? { flexGrow: 1, flexShrink: 1, minHeight: 0, overflow: 'hidden', justifyContent: 'flex-end' } : {})}
         >
           {gizli > 0 ? (
-            sabit ? null : <Text dimColor>↑ {gizli} eski mesaj</Text>
+            sabit ? null : <Text dimColor>↑ {adet(gizli, 'older message')}</Text>
           ) : (
             <Box flexDirection="row" alignItems="center" gap={1}>
               {masaustu && f.rumuz ? Avatar(f.rumuz, 'av-es-ben', f.ben) : null}
               {masaustu ? Avatar(karsi, 'av-es-o', s.karsi.cins) : null}
               <Text dimColor>
                 <Text color={TURUNCU}>♥ </Text>
-                {karsi} ile eşleştiniz · {saat(s.eslesme)}
+                You matched with {karsi} · {saat(s.eslesme)}
                 {tat(s.karsi) ? ` · ${tat(s.karsi)}` : ''}
               </Text>
             </Box>
@@ -1669,13 +1727,13 @@ export const register: Register = on => {
           {tuval ? (
             <Box key="sohbet-tuvali" flexDirection="column" gap={0}>
               {tuval.parcalar.map(p => (
-                <ogeler.Svg key={p.key} source={p.source} width={p.width} height={p.height} alt={p.key === 'yaziyor' ? `${karsi} yazıyor` : `${karsi} ile sohbetten bir mesaj`} isInteractive />
+                <ogeler.Svg key={p.key} source={p.source} width={p.width} height={p.height} alt={p.key === 'yaziyor' ? `${karsi} is typing` : `A message in your chat with ${karsi}`} isInteractive />
               ))}
             </Box>
           ) : (
             gorunen.map(mesajSatiri)
           )}
-          {s.bitti && !s.kalici && sabitN == null && <Text dimColor>{s.bitti.ben ? 'Sohbeti bitirdin.' : ayrilis(karsi, s.bitti.neden)}</Text>}
+          {s.bitti && !s.kalici && sabitN == null && <Text dimColor>{s.bitti.ben ? 'You ended the chat.' : ayrilis(karsi, s.bitti.neden)}</Text>}
         </Box>
 
         <Box flexDirection="column" flexShrink={0} gap={siki ? 0 : 1}>
@@ -1684,22 +1742,22 @@ export const register: Register = on => {
             <Button
               key="en-alta"
               {...(altta > 0 ? { variant: 'primary' } : { plain: true })}
-              label={`↓ En yeni mesajlar${altta > 0 ? ` (${altta})` : ''}`}
+              label={`↓ Latest messages${altta > 0 ? ` (${altta})` : ''}`}
               onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, sabitN: null }))}
             />
           </Box>
         ) : null}
         {s.kalici && s.fotoIstekGeldi ? (
           <Box flexDirection="row" alignItems="center" gap={1} flexWrap="wrap" borderStyle="round" borderColor={TURUNCU} paddingX={1}>
-            <Text>📷 {karsi} sana fotoğraf göndermek istiyor. Almak ister misin?</Text>
-            <Button key="foto-evet" variant="primary" label="Evet, al" onPress={() => void guvenli($, () => fotoIzinVer($, s.id, 'evet'))} />
-            <Button key="foto-hayir" plain label="Hayır" onPress={() => void guvenli($, () => fotoIzinVer($, s.id, 'hayir'))} />
+            <Text>📷 {karsi} wants to send you photos. Accept?</Text>
+            <Button key="foto-evet" variant="primary" label="Yes, accept" onPress={() => void guvenli($, () => fotoIzinVer($, s.id, 'evet'))} />
+            <Button key="foto-hayir" plain label="No" onPress={() => void guvenli($, () => fotoIzinVer($, s.id, 'hayir'))} />
           </Box>
         ) : null}
         {s.kalici && s.fotoBenden === 'hayir' ? (
           <Box flexDirection="row" alignItems="center" gap={1} flexWrap="wrap">
-            <Text dimColor>Bu sohbette {karsi} kişisinden fotoğraf almıyorsun.</Text>
-            <Button key="foto-izin-ac" plain label="Fotoğraflara izin ver" onPress={() => void guvenli($, () => fotoIzinVer($, s.id, 'evet'))} />
+            <Text dimColor>You’re not accepting photos from {karsi} in this chat.</Text>
+            <Button key="foto-izin-ac" plain label="Allow photos" onPress={() => void guvenli($, () => fotoIzinVer($, s.id, 'evet'))} />
           </Box>
         ) : null}
         {s.mesajlar
@@ -1709,7 +1767,7 @@ export const register: Register = on => {
             <Button
               key={'foto-' + m.foto!.id}
               plain
-              label={`${m.foto!.mod === 'tek' ? '🔥 Tek gösterimlik fotoğrafı aç' : '📷 Fotoğrafı aç'} · ${m.kim === 'ben' ? 'senin' : karsi} · ${new Date(m.at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`}
+              label={`${m.foto!.mod === 'tek' ? '🔥 Open view-once photo' : '📷 Open photo'} · ${m.kim === 'ben' ? 'yours' : karsi} · ${new Date(m.at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`}
               onPress={() => void guvenli($, () => fotoAc($, s.id, m.foto!.id, siki))}
             />
           ))}
@@ -1718,8 +1776,8 @@ export const register: Register = on => {
           <Input
             key={'mesaj-' + s.id + '-' + d.yazSayac + (d.kisiselOnay ? '-onay' : '')}
             {...(d.kisiselOnay ? { value: d.kisiselOnay } : {})}
-            placeholder={`${karsi} için bir şey yaz`}
-            submitLabel="Gönder"
+            placeholder={`Write something to ${karsi}`}
+            submitLabel="Send"
             autoFocus
             {...(zengin ? { rows: 2 } : {})}
             onInput={(v: string) => {
@@ -1734,12 +1792,12 @@ export const register: Register = on => {
             <Button
               key="foto-gonder"
               plain
-              label={s.fotoOndan === 'evet' ? '📷 Fotoğraf' : s.fotoOndan === 'hayir' ? '📷 Fotoğraf almıyor' : s.fotoIstekGitti ? '📷 İzin bekleniyor…' : '📷 Fotoğraf göndermek için izin iste'}
+              label={s.fotoOndan === 'evet' ? '📷 Photo' : s.fotoOndan === 'hayir' ? '📷 Not accepting photos' : s.fotoIstekGitti ? '📷 Waiting for permission…' : '📷 Ask to send photos'}
               onPress={() =>
                 void guvenli($, async () => {
                   if (s.fotoOndan === 'evet') await update($, ekran, (x: Ekran) => ({ ...x, fotoForm: { oda: s.id, mod: 'tek' as const }, uyari: '' }))
-                  else if (s.fotoOndan === 'hayir') await uyar($, `${karsi} bu sohbette fotoğraf almak istemiyor.`)
-                  else if (s.fotoIstekGitti) await uyar($, 'İsteğin gitti; cevabını bekliyoruz.')
+                  else if (s.fotoOndan === 'hayir') await uyar($, `${karsi} doesn’t want photos in this chat.`)
+                  else if (s.fotoIstekGitti) await uyar($, 'Request sent; waiting for their answer.')
                   else await fotoIzinIste($, s.id)
                 })
               }
@@ -1750,15 +1808,15 @@ export const register: Register = on => {
           ) : null}
           {s.bitti && !s.kalici && (
             <>
-              <Text dimColor>Nasıldı?</Text>
+              <Text dimColor>How was it?</Text>
               <Button key="iyi" plain label={s.puanBen === 'iyi' ? '[👍]' : '👍'} onPress={() => void guvenli($, () => puanVer($, s.id, 'iyi'))} />
               <Button key="kotu" plain label={s.puanBen === 'kotu' ? '[👎]' : '👎'} onPress={() => void guvenli($, () => puanVer($, s.id, 'kotu'))} />
-              <Button key="kapat" plain label="Sil ve kapat" onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, ayrilOnay: s.id }))} />
-              <Button key="yeni" variant="primary" label="Yeni biriyle tanış" onPress={() => void guvenli($, () => sirayaGir($))} />
+              <Button key="kapat" plain label="Delete and close" onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, ayrilOnay: s.id }))} />
+              <Button key="yeni" variant="primary" label="Meet someone new" onPress={() => void guvenli($, () => sirayaGir($))} />
             </>
           )}
-          {acik && siki && !odakta && <Text dimColor>Panele yazmak için ctrl+x tab</Text>}
-          {acik && mobil && <Text dimColor>Kutu görünmüyorsa: /date mesajın</Text>}
+          {acik && siki && !odakta && <Text dimColor>ctrl+x tab to type in the panel</Text>}
+          {acik && mobil && <Text dimColor>No input box? Use /date your message</Text>}
         </Box>
         {!acik && uyari}
         {eskiNot}

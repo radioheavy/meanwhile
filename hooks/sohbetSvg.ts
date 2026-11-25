@@ -19,7 +19,7 @@ const ARA_FARKLI = 14 // konuşan değişince
 const ARA_SAAT = 12 // saat ayracından önce
 
 const kac = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-const saat = (t: number) => new Date(t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+const saat = (t: number) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 
 // Kelime kelime satırlara böl; çok uzun kelimeyi parçala.
 function satirlar(metin: string, en: number): string[] {
@@ -149,7 +149,7 @@ export function sohbetSvg(o: {
     govde += g
     y += h
     // Grubun altında saat ya da gönderim durumu
-    const alt = m.durum === 'gidiyor' ? 'gönderiliyor…' : m.durum === 'hata' ? 'gönderilemedi' : grupSonu ? saat(m.at) : ''
+    const alt = m.durum === 'gidiyor' ? 'sending…' : m.durum === 'hata' ? 'not sent' : grupSonu ? saat(m.at) : ''
     if (alt) {
       y += 14
       govde += `<text x="${benim ? W - 12 : solBosluk + 4}" y="${y}" text-anchor="${benim ? 'end' : 'start'}" font-size="10.5" fill="${m.durum === 'hata' ? '#ff5b14' : '#7d7d86'}">${alt}</text>`
