@@ -12,7 +12,7 @@ import { sohbetSvg } from './sohbetSvg'
 
 const VARSAYILAN_SUNUCU = 'https://ask.oktaydak.com'
 // plugin.json'daki sürümle aynı olmalı.
-const SURUM = '0.8.0'
+const SURUM = '0.8.1'
 // Kurar ya da günceller ve otomatik güncellemeyi açar.
 const GUNCELLEME_KOMUTU = 'curl -fsSL https://ask.oktaydak.com/kur.sh | sh'
 // Çalışan Claude Code: zengin görünüm için en az ZENGIN_SURUM gerekir (Text weight/size, Input rows...).
@@ -555,6 +555,64 @@ async function calistir($: E, argv: string[]) {
   }
 }
 
+// Panodaki görseli "$1" dosyasına yazar. Çıkış: 0 tamam (dosya kopyalandıysa yolunu basar),
+// 1 panoda görsel yok, 3 pano aracı yok. X11, Wayland ve macOS; DISPLAY yoksa ilk X ekranını dener.
+const PANO_BETIGI = `
+out="$1"
+if [ "$(uname)" = Darwin ]; then
+  osascript -e 'set f to open for access POSIX file "'"$out"'" with write permission' -e 'set eof f to 0' -e 'write (the clipboard as «class PNGf») to f' -e 'close access f' >/dev/null 2>&1 || pngpaste "$out" >/dev/null 2>&1
+  test -s "$out" && exit 0
+  exit 1
+fi
+if [ -z "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ]; then
+  n=$(ls /tmp/.X11-unix 2>/dev/null | sed -n 's/^X//p' | head -n 1)
+  [ -n "$n" ] && export DISPLAY=":$n"
+fi
+dosya() {
+  for u in $(cat); do
+    case "$u" in file://*) f=$(printf '%s\\n' "\${u#file://}" | awk '{ h="0123456789abcdef"; o=""; s=$0; while ((i = index(s, "%")) > 0 && i + 2 <= length(s)) { o = o substr(s, 1, i - 1); x = tolower(substr(s, i + 1, 2)); o = o sprintf("%c", (index(h, substr(x, 1, 1)) - 1) * 16 + index(h, substr(x, 2, 1)) - 1); s = substr(s, i + 3) } printf "%s", o s }');; /*) f="$u";; *) continue;; esac
+    case "$(printf %s "$f" | tr 'A-Z' 'a-z')" in *.png|*.jpg|*.jpeg|*.webp|*.gif|*.bmp|*.heic|*.tif|*.tiff) [ -f "$f" ] && { printf %s "$f"; exit 0; };; esac
+  done
+  exit 1
+}
+if [ -n "$WAYLAND_DISPLAY" ] && command -v wl-paste >/dev/null 2>&1; then
+  tur=$(wl-paste --list-types 2>/dev/null | grep -m1 '^image/')
+  if [ -n "$tur" ]; then wl-paste --type "$tur" > "$out" 2>/dev/null; test -s "$out" && exit 0; fi
+  wl-paste --type text/uri-list 2>/dev/null | tr -d '\r' | dosya && exit 0
+fi
+if command -v xclip >/dev/null 2>&1; then
+  turler=$(xclip -selection clipboard -t TARGETS -o 2>/dev/null)
+  tur=$(printf '%s\n' "$turler" | grep -m1 '^image/')
+  if [ -n "$tur" ]; then xclip -selection clipboard -t "$tur" -o > "$out" 2>/dev/null; test -s "$out" && exit 0; fi
+  { xclip -selection clipboard -t x-special/gnome-copied-files -o 2>/dev/null; xclip -selection clipboard -t text/uri-list -o 2>/dev/null; } | tr -d '\r' | grep -v '^copy$\|^cut$' | dosya && exit 0
+  exit 1
+fi
+command -v wl-paste >/dev/null 2>&1 && exit 1
+exit 3
+`
+
+// Sistemin dosya seçme penceresi: macOS'ta Finder, Linux'ta zenity ya da kdialog.
+// Seçilen yolu verir; vazgeçilirse null.
+async function dosyaSec($: E): Promise<string | null> {
+  const r = await $.process
+    .run(
+      [
+        'sh',
+        '-c',
+        `if [ "$(uname)" = Darwin ]; then osascript -e 'POSIX path of (choose file of type {"public.image"} with prompt "Choose a photo to send")' 2>/dev/null; exit $?; fi
+if [ -z "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ]; then n=$(ls /tmp/.X11-unix 2>/dev/null | sed -n 's/^X//p' | head -n 1); [ -n "$n" ] && export DISPLAY=":$n"; fi
+if command -v zenity >/dev/null 2>&1; then zenity --file-selection --title="Choose a photo to send" --file-filter='Images | *.png *.jpg *.jpeg *.webp *.gif *.bmp *.heic *.PNG *.JPG *.JPEG' 2>/dev/null; exit $?; fi
+if command -v kdialog >/dev/null 2>&1; then kdialog --getopenfilename "$HOME" 'image/png image/jpeg image/webp image/gif' 2>/dev/null; exit $?; fi
+exit 3`,
+      ],
+      { timeoutMs: 600_000 },
+    )
+    .catch(() => ({ exitCode: 127, stdout: '' }) as { exitCode: number; stdout: string })
+  if (r.exitCode === 3 || r.exitCode === 127) throw new Error('No file picker found. On Linux, install zenity or kdialog; or copy the image and use Paste.')
+  const yol = r.stdout.trim()
+  return r.exitCode === 0 && yol ? yol : null
+}
+
 // Panodaki ekran görüntüsünü ya da verilen dosyayı küçültür, içindeki bütün bilgileri
 // (GPS konumu dahil) siler ve base64 JPEG olarak verir. ffmpeg, sips (macOS) ya da ImageMagick kullanır.
 async function fotoHazirla($: E, kaynak: string): Promise<{ b64: string; tur: string }> {
@@ -564,14 +622,12 @@ async function fotoHazirla($: E, kaynak: string): Promise<{ b64: string; tur: st
     let girdi = kaynak.replace(/^~(?=\/)/, (await calistir($, ['sh', '-c', 'printf %s "$HOME"'])).stdout.trim())
     if (kaynak === 'pano') {
       girdi = gecici + '/pano.png'
-      const r = await calistir($, [
-        'sh',
-        '-c',
-        'xclip -selection clipboard -t image/png -o > "$1" 2>/dev/null || wl-paste --type image/png > "$1" 2>/dev/null || pngpaste "$1" 2>/dev/null; test -s "$1"',
-        'sh',
-        girdi,
-      ])
-      if (r.exitCode !== 0) throw new Error('There’s no image on the clipboard. Take a screenshot or copy an image first.')
+      const r = await calistir($, ['sh', '-c', PANO_BETIGI, 'sh', girdi])
+      const kopyalanan = r.stdout.trim()
+      if (r.exitCode === 3) throw new Error('Reading the clipboard needs xclip (X11) or wl-clipboard (Wayland). Install one, or use Browse.')
+      if (r.exitCode !== 0) throw new Error('There’s no image on the clipboard. Take a screenshot or copy an image first, or use Browse.')
+      // Dosya yöneticisinden kopyalanmış bir resim dosyası: doğrudan onu kullan.
+      if (kopyalanan.startsWith('/')) girdi = kopyalanan
     } else if (!(await $.fs.exists(girdi))) throw new Error('No file at this path: ' + kaynak)
     const cikti = gecici + '/foto.jpg'
     for (const [en, q] of [[960, 5], [720, 6], [560, 7], [420, 9], [320, 12]] as const) {
@@ -580,8 +636,7 @@ async function fotoHazirla($: E, kaynak: string): Promise<{ b64: string; tur: st
       if (r.exitCode !== 0) r = await calistir($, ['convert', girdi, '-auto-orient', '-strip', '-resize', `${en}x${en}>`, '-quality', String(90 - q * 4), cikti])
       if (r.exitCode !== 0) r = await calistir($, ['sips', '-s', 'format', 'jpeg', '-s', 'formatOptions', String(90 - q * 4), '-Z', String(en), girdi, '--out', cikti])
       if (r.exitCode !== 0) throw new Error('Preparing a photo needs ffmpeg or ImageMagick (on macOS, sips is enough).')
-      const okunan = (await $.fs.read(cikti, { as: 'bytes' } as any)) as any
-      const b64 = String(okunan?.base64 ?? '')
+      const b64 = (await calistir($, ['sh', '-c', 'base64 < "$1" | tr -d "\\n\\r"', 'sh', cikti])).stdout.trim()
       if (b64 && b64.length <= FOTO_SINIR) return { b64, tur: 'jpeg' }
     }
     throw new Error('Couldn’t shrink the photo; try a smaller image.')
@@ -1171,8 +1226,20 @@ export const register: Register = on => {
                 <Button key="mod-kalici" plain={ff.mod !== 'kalici' ? true : undefined} variant={ff.mod === 'kalici' ? 'primary' : undefined} label="📌 Keep in chat" onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, fotoForm: { ...ff, mod: 'kalici' as const } }))} />
               </Box>
               <Text dimColor>{ff.mod === 'tek' ? 'Opens once, then it’s deleted for everyone.' : 'Stays in the chat as long as you stay connected.'}</Text>
-              <Button key="foto-pano" label="Send image from clipboard" onPress={() => gonderKaynak('pano')} />
-              <Input key="foto-yol" label="or a file path" placeholder="~/Pictures/screenshot.png" submitLabel="Send" onSubmit={(v: string) => v.trim() && gonderKaynak(v.trim())} />
+              <Box flexDirection="row" gap={1} flexWrap="wrap">
+                <Button
+                  key="foto-gozat"
+                  variant="primary"
+                  label="📁 Browse…"
+                  onPress={() =>
+                    void guvenli($, async () => {
+                      const yol = await dosyaSec($)
+                      if (yol) await fotoGonder($, ff.oda, ff.mod, yol)
+                    })
+                  }
+                />
+                <Button key="foto-pano" label="📋 Paste from clipboard" onPress={() => gonderKaynak('pano')} />
+              </Box>
             </Box>,
           )}
           <Button key="foto-vazgec" plain label="Cancel" onPress={kapat} />

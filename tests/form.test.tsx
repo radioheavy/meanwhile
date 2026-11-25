@@ -293,6 +293,8 @@ test('photos: permission request, allow, open view-once, send form and disclaime
   expect((await ui.find({ type: 'Text', text: /Before you send a photo/ }))?.text).toBe('Before you send a photo')
   await ui.press({ key: 'foto-kabul' })
   expect(await ui.find({ type: 'Button', key: 'foto-pano' })).toBeDefined()
+  expect(await ui.find({ type: 'Button', key: 'foto-gozat' })).toBeDefined()
+  expect(await ui.find({ type: 'Input', key: 'foto-yol' })).toBeUndefined()
   await ui.press({ key: 'mod-kalici' })
   expect((await ui.find({ type: 'Text', text: /as long as/ }))?.text).toContain('Stays in the chat')
   await ui.press({ key: 'foto-vazgec' })

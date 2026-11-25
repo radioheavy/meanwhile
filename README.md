@@ -60,7 +60,7 @@ You can talk to several people at once: the panel has a chat list, each with its
 
 Photos can only be sent to people you've **★ stayed connected** with, and **the other person's permission** is asked first ("📷 Aslı wants to send you photos. Accept?"). If you say no, you won't get photos from them in that chat; you can turn them on any time with "Allow photos". Below the chat list you can turn off receiving photos altogether.
 
-When sending, you choose: **🔥 View once** (opens once, then it's deleted for everyone) or **📌 Keep in chat** (stays as long as you stay connected). You can send a screenshot from the clipboard or a file; photos are resized before they're sent, and details like location are removed (needs ffmpeg, ImageMagick, or sips on macOS).
+When sending, you choose: **🔥 View once** (opens once, then it's deleted for everyone) or **📌 Keep in chat** (stays as long as you stay connected). Pick a file with **📁 Browse…** (your system's file picker) or send what you copied with **📋 Paste from clipboard**: a screenshot, a copied image, or an image file copied in your file manager. Photos are resized before they're sent, and details like location are removed (needs ffmpeg, ImageMagick, or sips on macOS; on Linux, xclip or wl-clipboard for the clipboard and zenity or kdialog for Browse).
 
 **Disclaimer:**
 - You alone are responsible for the photos you send.
