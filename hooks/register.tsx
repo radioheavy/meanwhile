@@ -12,13 +12,14 @@ import { sohbetSvg } from './sohbetSvg'
 
 const VARSAYILAN_SUNUCU = 'https://meanwhile.oktaydak.com'
 // plugin.json'daki sürümle aynı olmalı.
-const SURUM = '0.9.1'
+const SURUM = '0.9.2'
 // Kurar ya da günceller ve otomatik güncellemeyi açar.
 const GUNCELLEME_KOMUTU = 'curl -fsSL https://meanwhile.oktaydak.com/kur.sh | sh'
 // Çalışan Claude Code: zengin görünüm için en az ZENGIN_SURUM gerekir (Text weight/size, Input rows...).
 const ZENGIN_SURUM = '2.1.328'
 const PANEL = 'meanwhile'
 const BASLIK = 'meanwhile'
+const DESTEK_ADRESI = 'https://buymeacoffee.com/oktaydak'
 const RUMUZ = /^[\p{L}\p{N}_.-]{2,20}$/u
 const RUMUZ_UYARI = 'Nicknames can be 2–20 characters: letters, numbers, _ . and -.'
 const TURUNCU = '#ff5b14'
@@ -72,6 +73,8 @@ const KOMUT_TAKMA: Record<string, string> = {
   engeller: 'blocked',
   'geri-bildirim': 'feedback',
   geribildirim: 'feedback',
+  destek: 'support',
+  bagis: 'support',
   öneri: 'feedback',
   oneri: 'feedback',
   sürüm: 'version',
@@ -936,6 +939,7 @@ export const register: Register = on => {
             '  /meanwhile report [reason]  report someone who bothers you',
             '  /meanwhile blocked          see who you blocked, unblock if you like',
             '  /meanwhile feedback <text>  send us an idea, a bug or a fix',
+            '  /meanwhile support          buy us a coffee if you like meanwhile',
             '  /meanwhile leave            end your regular chats (connections stay)',
             '  /meanwhile version          show your version and whether an update is out',
             '  /meanwhile setup <nickname> <w|m|x> <w|m|a> 18+   quick setup: your gender (woman, man, prefer not to say), who to meet (women, men, anyone); 18+ confirms your age',
@@ -986,6 +990,7 @@ export const register: Register = on => {
         else await $.store.delete(await anahtar($, 'sunucu'))
         return sonuc('server: ' + (await sunucu($)))
       }
+      if (komut === 'support') return sonuc(`Thanks for thinking of it ☕ ${DESTEK_ADRESI}`)
       if (komut === 'feedback') {
         const metin = kalan.join(' ')
         if (!metin) {
@@ -1066,7 +1071,7 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'Pane', requestId: PANEL }, async ($, e) => {
     const ogeler = $.ui.resolve(e) as any
-    const { Box, Text, Button, Input, Select } = ogeler
+    const { Box, Text, Button, Input, Select, Link } = ogeler
     const d = await read($, ekran)
     const f = await read($, form)
     const o = await read($, ortam)
@@ -1639,6 +1644,9 @@ export const register: Register = on => {
             />
             <Button key="foto-ayar" plain label={d.fotoAl === 'hayir' ? '📷 Not accepting photos (turn on)' : '📷 Photos: ask me first'} onPress={() => void guvenli($, () => fotoAyari($, d.fotoAl === 'hayir' ? 'sor' : 'hayir'))} />
             <Button key="geri-bildirim" plain label="Feedback" onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, geriBildirim: true, uyari: '' }))} />
+            <Text key="destek">
+              <Link href={DESTEK_ADRESI} label="☕ Support meanwhile" />
+            </Text>
             <Button key="cik" plain label="Sign out" onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, ayrilOnay: 'hepsi' }))} />
           </Box>
           {uyari}

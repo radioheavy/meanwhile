@@ -124,6 +124,8 @@ test('two chats at once: list, unread, open a chat and go back', async ($, on) =
     if (surface === 'terminal') await kurulumuGec(ui)
     expect(await ui.find({ type: 'Button', key: 'ac-oda1' })).toBeDefined()
     expect(await ui.find({ type: 'Button', key: 'ac-oda2' })).toBeDefined()
+    const destek = (await ui.findAll({ type: 'Link' })).find((l: any) => String(l.props?.href).includes('buymeacoffee.com/oktaydak'))
+    expect(destek).toBeDefined()
     await ui.press({ key: 'ac-oda1' })
     expect((await ui.find({ type: 'Text', text: /deploy mu/ }))?.text).toBe('selam! deploy mu bekliyorsun?')
     expect(await ui.find({ type: 'Button', key: 'gonder' })).toBeUndefined()
@@ -322,4 +324,11 @@ test('/mw is short for /meanwhile', async ($, on) => {
   const uzun = await $.command.run({ command: 'meanwhile', args: 'help' } as any)
   expect(kisa.text).toContain('/mw is short for /meanwhile')
   expect(kisa.text).toBe(uzun.text)
+})
+
+test('/mw support shows the coffee link', async ($, on) => {
+  kur(on)
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const r = await $.command.run({ command: 'mw', args: 'support' } as any)
+  expect(r.text).toContain('https://buymeacoffee.com/oktaydak')
 })

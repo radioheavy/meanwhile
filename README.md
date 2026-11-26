@@ -47,6 +47,7 @@ curl -fsSL https://meanwhile.oktaydak.com/kur.sh | sh
 /meanwhile blocked          see who you blocked, unblock if you like
 /meanwhile leave            end your regular chats (connections stay)
 /meanwhile version          your version and update status
+/meanwhile support          buy us a coffee ☕
 /meanwhile help             all commands
 ```
 
@@ -74,6 +75,10 @@ When sending, you choose: **🔥 View once** (opens once, then it's deleted for 
 - Notifications never show the message itself; if you type a phone number, email or link, you're warned before it's sent.
 - **What the other person writes never reaches Claude.** Messages only show in the panel and in notifications; command output is marked so it's never sent to the model. Nobody can make your Claude do anything on your behalf.
 - For people 18 and older.
+
+## Support
+
+If meanwhile made a wait nicer, you can buy us a coffee: https://buymeacoffee.com/oktaydak (also in the panel and `/mw support`).
 
 ## Notes
 
