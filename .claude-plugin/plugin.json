@@ -1,8 +1,8 @@
 {
   "name": "meanwhile",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "description": "meanwhile — meet someone while you code: anonymous chat inside Claude Code. /meanwhile",
   "author": { "name": "radioheavy" },
-  "homepage": "https://meanwhile.oktaydak.com",
+  "homepage": "https://meanwhile.gripe",
   "types": "./types/index.d.ts"
 }
