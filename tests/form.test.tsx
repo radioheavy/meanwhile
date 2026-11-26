@@ -10,7 +10,7 @@ const PANE = {
 const desteklenmiyor = (h: unknown) => /is not allowed|not an element|refused/.test(String((h as Error)?.message ?? h))
 
 // Sahte sunucu ve motor: hafızalı depo, sohbet listesi.
-function kur(on: any, secenek: { surum?: string; sohbetler?: any[]; enAz?: string } = {}) {
+function kur(on: any, secenek: { surum?: string; sohbetler?: any[]; enAz?: string; saat?: any } = {}) {
   on('ui.open', () => ({ value: { isPlaced: true } }))
   on('command.register', () => ({ value: { command: 'meanwhile' } }))
   on('session.id', () => ({ value: 'test-oturum' }))
@@ -39,7 +39,7 @@ function kur(on: any, secenek: { surum?: string; sohbetler?: any[]; enAz?: strin
     else if (u.includes('/api/surum')) g = { son: secenek.enAz ?? '0.5.0', enAz: secenek.enAz ?? '0.5.0' }
     else if (u.includes('/api/kuyruk') || u.includes('/api/durum') || u.includes('/api/sira-cik')) {
       if (u.includes('/api/kuyruk')) sunucu.kuyruk.push(govde)
-      g = { sirada: false, sohbetler: sunucu.sohbetler, cevrimici: 3 }
+      g = { sirada: false, sohbetler: sunucu.sohbetler, cevrimici: 3, ...(secenek.saat ? { saat: secenek.saat } : {}) }
     }
     else if (u.endsWith('/api/mesaj')) g = { tamam: true, n: 99 }
     else if (u.endsWith('/api/engelle')) {
@@ -351,3 +351,15 @@ test('terms: setup needs consent, it is sent with the queue, and existing users 
   expect(sunucu.kuyruk.at(-1)?.onay).toBe('2026-11-26')
   await ui.unmount()
 })
+
+for (const [aktif, beklenen] of [[false, /Quiet\? Everyone meets at/], [true, /It’s meanwhile hour/]] as const) {
+  test(`meanwhile hour (${aktif ? 'on now' : 'later'}): the panel says so`, async ($, on) => {
+    const bas = Date.now() + (aktif ? -60_000 : 3_600_000)
+    kur(on, { saat: { aktif, bas, bit: bas + 3_600_000 } })
+    await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+    const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+    await kurulumuGec(ui)
+    expect(await ui.find({ type: 'Text', text: beklenen })).toBeDefined()
+    await ui.unmount()
+  })
+}

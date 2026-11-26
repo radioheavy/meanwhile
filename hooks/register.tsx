@@ -11,7 +11,7 @@ import { avatar, avatarRaster, avatarSvg } from './avatar'
 
 const VARSAYILAN_SUNUCU = 'https://meanwhile.gripe'
 // plugin.json'daki sürümle aynı olmalı.
-const SURUM = '0.10.0'
+const SURUM = '0.11.0'
 // Kurar ya da günceller ve otomatik güncellemeyi açar.
 const GUNCELLEME_KOMUTU = 'curl -fsSL https://meanwhile.gripe/kur.sh | sh'
 // Çalışan Claude Code: zengin görünüm için en az ZENGIN_SURUM gerekir (Text weight/size, Input rows...).
@@ -189,15 +189,35 @@ async function surumKontrol($: E) {
   try {
     const r = await $.http.fetch((await sunucu($)) + '/api/surum', { headers: { 'x-meanwhile-surum': SURUM } })
     if (!r.ok) return
-    const v = JSON.parse(r.text) as { son: string; enAz: string; komut?: string }
+    const v = JSON.parse(r.text) as { son: string; enAz: string; komut?: string; saat?: Ekran['saat'] }
     const komut = v.komut || GUNCELLEME_KOMUTU
     const durum: 'zorunlu' | 'var' | null = surumKarsilastir(SURUM, v.enAz) < 0 ? 'zorunlu' : surumKarsilastir(SURUM, v.son) < 0 ? 'var' : null
-    await update($, ekran, (e: Ekran) => ({ ...e, guncelleme: durum ? { durum, son: v.son, komut } : null }))
+    await update($, ekran, (e: Ekran) => ({ ...e, guncelleme: durum ? { durum, son: v.son, komut } : null, saat: v.saat ?? e.saat ?? null }))
+    if (v.saat) saatHatirlat($, v.saat)
     if (durum === 'zorunlu') yoklamayiDurdur($)
   } catch {}
 }
 
 const profil = async ($: E) => (await $.store.get(await anahtar($, 'profil'))) as Profil | undefined
+
+// meanwhile hour: başlamadan 10 dakika önce bir kez bildirim (açık pencerelerden yalnızca biri gönderir).
+let saatZamanlayici: { cancel: () => void } | null = null
+function saatHatirlat($: E, saat: NonNullable<Ekran['saat']>) {
+  saatZamanlayici?.cancel()
+  saatZamanlayici = null
+  const bas = saat.aktif ? saat.bas + 86_400_000 : saat.bas
+  const kalan = bas - 10 * 60_000 - Date.now()
+  if (kalan <= 0 || kalan > 26 * 3_600_000) return
+  saatZamanlayici = $.clock.after(kalan, () => {
+    void (async () => {
+      if (await birKez($, 'saat:' + bas)) {
+        void sistemBildirimi($, 'meanwhile hour', '🔥 Starts in 10 minutes. Everyone’s about to be here: /mw')
+        $.ui.toast('🔥 meanwhile hour starts in 10 minutes · /mw')
+      }
+      saatHatirlat($, { aktif: false, bas: bas + 86_400_000, bit: bas + 86_400_000 + 3_600_000 })
+    })().catch(() => {})
+  })
+}
 
 // ---------- sunucudan gelen durumu ekrana işle ----------
 function okunmamisToplam(e: Ekran): number {
@@ -292,6 +312,7 @@ async function isle($: E, d: any) {
       sohbetler,
       aktif,
       cevrimici: d.cevrimici ?? e.cevrimici,
+      saat: d.saat ?? e.saat ?? null,
       bildirForm: aktif ? e.bildirForm : null,
       // Sadece bağlantı uyarısını temizle; kullanıcıya verilen uyarılar dursun.
       uyari: e.uyari === BAGLANTI_UYARI ? '' : e.uyari,
@@ -837,6 +858,7 @@ function metinSaat(t: number) {
 
 function metinListe(d: Ekran): string {
   const satirlar = ['meanwhile' + (d.sirada ? ' · looking for someone…' : '')]
+  if (d.saat) satirlar.push(d.saat.aktif ? '🔥 It’s meanwhile hour right now.' : `Everyone meets at meanwhile hour: every day at 22:00 Istanbul time.`)
   if (!d.sohbetler.length) satirlar.push('No chats right now. To meet someone new: /meanwhile new')
   d.sohbetler.forEach((s, i) => {
     const son = s.mesajlar[s.mesajlar.length - 1]
@@ -960,6 +982,7 @@ export const register: Register = on => {
         return sonuc(
           [
             'meanwhile — meet someone while you code. /mw is short for /meanwhile.',
+            'Everyone meets at meanwhile hour: every day at 22:00 Istanbul time (19:00 UTC).',
             '',
             '  /meanwhile                  open the panel and start meeting people',
             '  /meanwhile <message>        send a message to the open chat (you can also type in the panel)',
@@ -1674,12 +1697,25 @@ export const register: Register = on => {
           {digerleri.length === 0 && <Text dimColor>You’re not talking to anyone right now.</Text>}
         </Box>
       )
-      const satirSigan = siki ? Math.max(2, govdeSatir - 5 - (serit ? 1 : 0) - (d.uyari ? 3 : 0) - (eskiNot ? 1 : 0)) : 20
+      const saatSatiri = d.saat ? (
+        d.saat.aktif ? (
+          <Text key="mw-saat">
+            <Text color={TURUNCU}>🔥 It’s meanwhile hour</Text>
+            <Text dimColor>  everyone’s here until {saat(d.saat.bit)}</Text>
+          </Text>
+        ) : (
+          <Text key="mw-saat" dimColor>
+            Quiet? Everyone meets at <Text color={TURUNCU}>meanwhile hour</Text>, every day at {saat(d.saat.bas)} your time (22:00 Istanbul).
+          </Text>
+        )
+      ) : null
+      const satirSigan = siki ? Math.max(2, govdeSatir - 6 - (serit ? 1 : 0) - (d.uyari ? 3 : 0) - (eskiNot ? 1 : 0)) : 20
       return (
         <Box flexDirection="column" gap={siki ? 0 : 1}>
           {ust}
           {serit}
           {aramaKarti}
+          {saatSatiri}
           {digerleri.length > 0 && (
             <Box flexDirection="column" gap={siki ? 0 : 1} {...(masaustu ? { borderStyle: 'round', borderColor: GRI_CIZGI, paddingX: 1 } : {})}>
               {digerleri.slice(0, satirSigan).map(s => {

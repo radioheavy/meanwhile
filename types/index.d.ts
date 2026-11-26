@@ -24,6 +24,7 @@ export type Sohbet = {
 export type Ekran = {
   durum: 'kurulum' | 'ana'
   onayGerek?: boolean
+  saat?: { aktif: boolean; bas: number; bit: number } | null
   sirada: boolean
   sohbetler: Sohbet[]
   aktif: string | null
