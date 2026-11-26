@@ -1,6 +1,6 @@
 # meanwhile
 
-Meet someone while you code. Type `/meanwhile` in Claude Code, get matched with someone who's here right now, and chat in the side panel without leaving your work.
+Meet someone while you code. Type `/meanwhile` (or `/mw` for short) in Claude Code, get matched with someone who's here right now, and chat in the side panel without leaving your work.
 
 https://meanwhile.oktaydak.com
 

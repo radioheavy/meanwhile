@@ -12,7 +12,7 @@ import { sohbetSvg } from './sohbetSvg'
 
 const VARSAYILAN_SUNUCU = 'https://meanwhile.oktaydak.com'
 // plugin.json'daki sürümle aynı olmalı.
-const SURUM = '0.9.0'
+const SURUM = '0.9.1'
 // Kurar ya da günceller ve otomatik güncellemeyi açar.
 const GUNCELLEME_KOMUTU = 'curl -fsSL https://meanwhile.oktaydak.com/kur.sh | sh'
 // Çalışan Claude Code: zengin görünüm için en az ZENGIN_SURUM gerekir (Text weight/size, Input rows...).
@@ -846,6 +846,11 @@ export const register: Register = on => {
       description: 'meanwhile — meet someone while you code, chat in the side panel',
       argumentHint: '[message | new | chats | end | block | report | leave | help]',
     } as any)
+    await $.command.register({
+      name: 'mw',
+      description: 'Short for /meanwhile',
+      argumentHint: '[message | new | chats | end | block | report | leave | help]',
+    } as any)
     void surumKontrol($)
     try {
       const v = await $.session.version()
@@ -872,7 +877,9 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('command.run', { command: 'meanwhile' }, async ($, e) => {
+  // /mw, /meanwhile'ın kısası: ikisi aynı işi yapar.
+  for (const ad of ['meanwhile', 'mw'])
+  on('command.run', { command: ad }, async ($, e) => {
     const args = e.args.trim()
     const [ilk, ...kalan] = args.split(/\s+/)
     // İngilizce alt komutlar; eski Türkçe adlar sessizce çalışmaya devam eder.
@@ -916,7 +923,7 @@ export const register: Register = on => {
       if (komut === 'help') {
         return sonuc(
           [
-            'meanwhile — meet someone while you code.',
+            'meanwhile — meet someone while you code. /mw is short for /meanwhile.',
             '',
             '  /meanwhile                  open the panel and start meeting people',
             '  /meanwhile <message>        send a message to the open chat (you can also type in the panel)',

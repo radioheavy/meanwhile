@@ -314,3 +314,12 @@ test('in a chat, header and input stay fixed, last message is visible', async ($
   expect(await ui.find({ type: 'Input' })).toBeDefined()
   await ui.unmount()
 })
+
+test('/mw is short for /meanwhile', async ($, on) => {
+  kur(on)
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const kisa = await $.command.run({ command: 'mw', args: 'help' } as any)
+  const uzun = await $.command.run({ command: 'meanwhile', args: 'help' } as any)
+  expect(kisa.text).toContain('/mw is short for /meanwhile')
+  expect(kisa.text).toBe(uzun.text)
+})
