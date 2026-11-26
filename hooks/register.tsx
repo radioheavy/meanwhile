@@ -3,7 +3,6 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import type { Cins, Ekran, Form, Mesaj, Ortam, Sohbet } from '../types'
 import { avatar, avatarRaster, avatarSvg } from './avatar'
-import { sohbetSvg } from './sohbetSvg'
 
 // meanwhile — Claude Code içinden anonim tanışma.
 // GÜVENLİK: karşı tarafın yazdığı hiçbir şey modele gitmez. Mesajlar sadece panelde görünür;
@@ -12,7 +11,7 @@ import { sohbetSvg } from './sohbetSvg'
 
 const VARSAYILAN_SUNUCU = 'https://meanwhile.gripe'
 // plugin.json'daki sürümle aynı olmalı.
-const SURUM = '0.9.9'
+const SURUM = '0.10.0'
 // Kurar ya da günceller ve otomatik güncellemeyi açar.
 const GUNCELLEME_KOMUTU = 'curl -fsSL https://meanwhile.gripe/kur.sh | sh'
 // Çalışan Claude Code: zengin görünüm için en az ZENGIN_SURUM gerekir (Text weight/size, Input rows...).
@@ -139,18 +138,6 @@ let siradakiYerel = -1
 let okundu: Record<string, number> | null = null
 const fotoIstekBildirildi = new Set<string>()
 let ilkIsle = true
-// Masaüstü tuvali: bir mesajın süzülerek belirip belirmeyeceği ilk görüldüğünde bir kez seçilir.
-const canlanma = new Map<string, boolean>()
-function canlanmali(oda: string, m: { kim: string; at: number }) {
-  const k = `${oda}:${m.kim}:${m.at}`
-  let v = canlanma.get(k)
-  if (v === undefined) {
-    if (canlanma.size > 3000) canlanma.clear()
-    v = Date.now() - m.at < 3500
-    canlanma.set(k, v)
-  }
-  return v
-}
 
 // ---------- kimlik ve sunucu ----------
 // Her pencere bir "profil yuvası" kullanır; varsayılan hepsinde ortak. /meanwhile profil <ad> o pencereyi ayırır.
@@ -1153,6 +1140,14 @@ export const register: Register = on => {
     const KUCUK = zengin ? { size: 'caption', dimColor: true } : { dimColor: true }
     const SAAT = zengin ? { size: 'caption', dimColor: true, tabular: true } : { dimColor: true }
 
+    // Resimsiz kişi rozeti: kişinin renginde yuvarlak zemin, baş harf. Sohbet ekranında avatar yerine.
+    const Rozet = (rumuz: string, cins: string | undefined, key: string) => (
+      <Box key={key} backgroundColor={kisiRenk(rumuz, cins)} borderStyle="round" borderColor={kisiRenk(rumuz, cins)} paddingX={0} width={3} justifyContent="center" flexShrink={0}>
+        <Text color="#ffffff" bold>
+          {([...rumuz][0] || '?').toLocaleUpperCase('en')}
+        </Text>
+      </Box>
+    )
     // Rumuzdan doğan avatar: masaüstünde Svg, terminalde Raster; eski Claude'da renkli işaret.
     const Avatar = (rumuz: string, anahtarAd: string, cins?: string) => {
       const renk = kisiRenk(rumuz, cins)
@@ -1804,7 +1799,6 @@ export const register: Register = on => {
           : { label: '★ Stay connected', primary: false }
     const durumYazi = s.bitti && !s.kalici ? 'chat ended' : s.karsiYaziyor ? 'typing…' : s.karsiCevrimici ? 'online' : s.kalici ? 'offline · they’ll get your message' : 'offline'
 
-    const tuvalYuzeyOn = (yuzey === 'desktop' || yuzey === 'vscode') && zengin && !!ogeler.Svg
     // Yan panelde (dock) üst kısım ve yazma kutusu sabit; aradaki mesaj alanı kayar.
     const sabit = yerlesim === 'dock' && !mobil && govdeSatir >= 12
     const sabitN = sabit ? (d.sabitN ?? null) : null
@@ -1813,21 +1807,9 @@ export const register: Register = on => {
     // Mesajlar: kalan yüksekliğe sığanlar; saat yalnızca değişince ya da konuşan değişince.
     const sabitSatir = 3 + (serit ? 1 : 0) + (d.uyari ? 3 : 0) + (acik ? (zengin ? 3 : 2) : 2) + (benimMesajYok && acik ? 2 : 1) + (eskiNot ? 1 : 0)
     const sigan = siki ? Math.max(2, govdeSatir - sabitSatir) : 12
-    const gorunen = kadar.slice(-(tuvalYuzeyOn ? 40 : sabit ? 60 : sigan))
+    // Sohbet ekranında resim yok (SVG balonlar her güncellemede yeniden yüklenip paneli titretiyordu).
+    const gorunen = kadar.slice(-(sabit ? 60 : sigan))
     const gizli = kadar.length - gorunen.length
-    // Masaüstü ve VS Code'da mesajlar tek bir SVG tuvalinde, mesajlaşma uygulaması gibi çizilir.
-    const tuvalYuzey = (yuzey === 'desktop' || yuzey === 'vscode') && zengin && !!ogeler.Svg
-    const tuval =
-      tuvalYuzey && (s.mesajlar.length > 0 || s.karsiYaziyor)
-        ? sohbetSvg({
-            mesajlar: kadar.slice(-40).map(m => (m.foto ? { ...m, metin: fotoMetin(m) } : m)),
-            karsiRumuz: karsi,
-            karsiRenk: kisiRenk(karsi, s.karsi.cins),
-            yaziyor: s.karsiYaziyor && acik && sabitN == null,
-            genislik: genislik * 7.8,
-            canlan: m => canlanmali(s.id, m),
-          })
-        : null
     // Balon: masaüstü ve mobilde yuvarlak köşeli; genişlik panelin ~%70'i, uzun mesaj içeride satır atlar.
     const balonEn = Math.max(14, Math.floor(genislik * (dar ? 0.82 : 0.68)) - 4)
     const mesajSatiri = (m: Mesaj, i: number) => {
@@ -1854,18 +1836,35 @@ export const register: Register = on => {
         ) : grupSonu ? (
           <Text {...SAAT}>{saat(m.at)}</Text>
         ) : null
-      return siki ? (
-        <Box key={'m' + m.n} flexDirection="row" justifyContent={benim ? 'flex-end' : 'flex-start'} gap={1}>
-          {benim ? alt : balon}
-          {benim ? balon : alt}
-        </Box>
-      ) : (
-        <Box key={'m' + m.n} flexDirection="column" alignItems={benim ? 'flex-end' : 'flex-start'} {...(yeniKonusan ? { marginTop: 1 } : {})}>
-          {balon}
-          {alt}
+      if (siki)
+        return (
+          <Box key={'m' + m.n} flexDirection="row" justifyContent={benim ? 'flex-end' : 'flex-start'} gap={1}>
+            {benim ? alt : balon}
+            {benim ? balon : alt}
+          </Box>
+        )
+      // Masaüstü: karşı tarafın grubunun ilk balonunun yanında baş harf rozeti, sonrakiler aynı hizada.
+      const grupBasi = !onceki || onceki.kim !== m.kim
+      return (
+        <Box key={'m' + m.n} flexDirection="row" justifyContent={benim ? 'flex-end' : 'flex-start'} gap={1} {...(yeniKonusan ? { marginTop: 1 } : {})}>
+          {!benim ? (grupBasi ? Rozet(karsi, s.karsi.cins, 'roz-' + m.n) : <Box key={'roz-bos-' + m.n} width={3} />) : null}
+          <Box flexDirection="column" alignItems={benim ? 'flex-end' : 'flex-start'}>
+            {balon}
+            {alt}
+          </Box>
         </Box>
       )
     }
+    // Karşı taraf yazarken: gri balonda üç nokta (resim yok, titremez).
+    const yaziyorBalonu =
+      !siki && s.karsiYaziyor && acik && sabitN == null ? (
+        <Box key="yaziyor" flexDirection="row" gap={1} marginTop={gorunen.at(-1)?.kim === 'o' ? 0 : 1}>
+          {gorunen.at(-1)?.kim === 'o' ? <Box width={3} /> : Rozet(karsi, s.karsi.cins, 'roz-yaziyor')}
+          <Box backgroundColor={GRI_BALON} borderStyle="round" borderColor={GRI_BALON} paddingX={1}>
+            <Text color={GRI_BALON_YAZI}>• • •</Text>
+          </Box>
+        </Box>
+      ) : null
     const buzKiricilar = ['What are you working on right now?', 'Tabs or spaces?', 'What’s the weirdest bug you hit today?']
     const eylemler = (
       <Box flexDirection="row" gap={2} flexWrap="wrap">
@@ -1884,7 +1883,7 @@ export const register: Register = on => {
         <Box flexDirection="row" justifyContent="space-between" alignItems="center">
           <Box flexDirection="row" alignItems="center" gap={1}>
             <Button key="geri-liste" plain label={'← Chats' + (digerOkunmamis > 0 ? ` ● ${digerOkunmamis}` : '')} onPress={() => void sohbetAc($, null)} />
-            {masaustu ? Avatar(karsi, 'av-karsi', s.karsi.cins) : <Text color={kisiRenk(karsi, s.karsi.cins)}>◆</Text>}
+            {masaustu ? Rozet(karsi, s.karsi.cins, 'av-karsi') : <Text color={kisiRenk(karsi, s.karsi.cins)}>◆</Text>}
             <Box flexDirection={dar ? 'column' : 'row'}>
               <Text>
                 {Ad(karsi, s.karsi.cins)}
@@ -1909,8 +1908,8 @@ export const register: Register = on => {
             sabit ? null : <Text dimColor>↑ {adet(gizli, 'older message')}</Text>
           ) : (
             <Box flexDirection="row" alignItems="center" gap={1}>
-              {masaustu && f.rumuz ? Avatar(f.rumuz, 'av-es-ben', f.ben) : null}
-              {masaustu ? Avatar(karsi, 'av-es-o', s.karsi.cins) : null}
+              {masaustu && f.rumuz ? Rozet(f.rumuz, f.ben, 'av-es-ben') : null}
+              {masaustu ? Rozet(karsi, s.karsi.cins, 'av-es-o') : null}
               <Text dimColor>
                 <Text color={TURUNCU}>♥ </Text>
                 You matched with {karsi} · {saat(s.eslesme)}
@@ -1925,15 +1924,12 @@ export const register: Register = on => {
               ))}
             </Box>
           )}
-          {tuval ? (
-            <Box key="sohbet-tuvali" flexDirection="column" gap={0}>
-              {tuval.parcalar.map(p => (
-                <ogeler.Svg key={p.key} source={p.source} width={p.width} height={p.height} alt={p.key === 'yaziyor' ? `${karsi} is typing` : `A message in your chat with ${karsi}`} isInteractive />
-              ))}
-            </Box>
-          ) : (
-            gorunen.map(mesajSatiri)
-          )}
+          {
+            <>
+              {gorunen.map(mesajSatiri)}
+              {yaziyorBalonu}
+            </>
+          }
           {s.bitti && !s.kalici && sabitN == null && <Text dimColor>{s.bitti.ben ? 'You ended the chat.' : ayrilis(karsi, s.bitti.neden)}</Text>}
         </Box>
 

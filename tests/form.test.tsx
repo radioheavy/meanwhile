@@ -252,8 +252,8 @@ test('confirm before leaving: one chat and signing out of all', async ($, on) =>
   await ui.unmount()
 })
 
-test('on desktop, messages are drawn on an SVG canvas (new Claude)', async ($, on) => {
-  kur(on, { surum: '2.1.332', sohbetler: [sohbet('oda1', 'kahve_ve_kod', [{ n: 1, kim: 'o', metin: 'selam!', at: 0 }, { n: 2, kim: 'ben', metin: 'naber?', at: 1 }])] })
+test('on desktop, chat bubbles are native elements (no images, so the panel never flickers)', async ($, on) => {
+  kur(on, { surum: '2.1.332', sohbetler: [sohbet('oda1', 'kahve_ve_kod', [{ n: 1, kim: 'o', metin: 'selam!', at: 0 }, { n: 2, kim: 'ben', metin: 'naber?', at: 1 }], { karsiYaziyor: true })] })
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
   let ui
   try {
@@ -264,16 +264,10 @@ test('on desktop, messages are drawn on an SVG canvas (new Claude)', async ($, o
   }
   await kurulumuGec(ui)
   await ui.press({ key: 'ac-oda1' })
-  // Mesajlar artık düz yazı olarak değil, tuvalde çiziliyor.
-  expect(await ui.find({ type: 'Text', text: /^selam!$/ })).toBeUndefined()
-  // Her mesaj ayrı bir parça: yeni mesaj gelince eskilerin kaynağı değişmez (ekran kararmaz).
-  const svgler = (await ui.findAll({ type: 'Svg' })) as any[]
-  const parca = (metin: string) => svgler.filter(x => String(x.props?.source ?? '').includes(metin))
-  if (svgler.some(x => String(x.props?.source ?? '').includes('naber?'))) {
-    expect(parca('naber?')).toHaveLength(1)
-    expect(parca('selam!')).toHaveLength(1)
-    expect(parca('naber?')[0].props.source).not.toContain('selam!')
-  }
+  expect(await ui.find({ type: 'Text', text: /^selam!$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^naber\?$/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /• • •/ })).toBeDefined()
+  expect((await ui.findAll({ type: 'Svg' })) as any[]).toHaveLength(0)
   await ui.unmount()
 })
 
