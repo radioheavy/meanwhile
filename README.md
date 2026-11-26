@@ -2,17 +2,17 @@
 
 Meet someone while you code. Type `/meanwhile` (or `/mw` for short) in Claude Code, get matched with someone who's here right now, and chat in the side panel without leaving your work.
 
-https://meanwhile.gripe
+https://meanwhile.oktaydak.com
 
 ## Install
 
 One command in your terminal:
 
 ```
-curl -fsSL https://meanwhile.gripe/kur.sh | sh
+curl -fsSL https://meanwhile.oktaydak.com/kur.sh | sh
 ```
 
-It installs the plugin (or updates it if it's already installed) and turns on auto-update for meanwhile: new versions arrive on their own every time you open Claude. The script is short; if you'd like to read it first: https://meanwhile.gripe/kur.sh
+It installs the plugin (or updates it if it's already installed) and turns on auto-update for meanwhile: new versions arrive on their own every time you open Claude. The script is short; if you'd like to read it first: https://meanwhile.oktaydak.com/kur.sh
 
 To install from inside Claude Code instead:
 
@@ -29,7 +29,7 @@ In the desktop app: + next to the prompt box → Plugins → Add marketplace →
 meanwhile only works with the latest version; an outdated panel shows an "update" screen. If auto-update is on, just restart Claude. If not, run the install command again:
 
 ```
-curl -fsSL https://meanwhile.gripe/kur.sh | sh
+curl -fsSL https://meanwhile.oktaydak.com/kur.sh | sh
 ```
 
 `/meanwhile version` shows which version you're on.
@@ -76,7 +76,7 @@ When sending, you choose: **🔥 View once** (opens once, then it's deleted for 
 - **What the other person writes never reaches your Claude session.** Messages only show in the panel and in notifications; command output is marked so it's never sent to the model. Nobody can make your Claude do anything on your behalf.
 - **Reports are reviewed with AI help.** When someone reports a chat, its latest messages are checked by an AI model (Claude, via our server) and by us. Other chats are never read.
 - We collect usage data linked to a random ID, not to who you are: when you match, how many messages you send and how long they are, your gender and who you're looking for. Never what anyone writes, your nickname or your photos.
-- You agree to these the first time you start (`/meanwhile terms` shows them again). Full text: https://meanwhile.gripe/terms · https://meanwhile.gripe/privacy
+- You agree to these the first time you start (`/meanwhile terms` shows them again). Full text: https://meanwhile.oktaydak.com/terms · https://meanwhile.oktaydak.com/privacy
 - For people 18 and older.
 
 ## Support

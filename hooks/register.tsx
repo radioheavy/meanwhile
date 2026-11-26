@@ -10,11 +10,11 @@ import { sohbetSvg } from './sohbetSvg'
 // bildirimlerde mesajın kendisi yoktur; komut çıktıları isTextDisplayOnly ile işaretlidir.
 // Aynı anda birden fazla kişiyle konuşulabilir; iki taraf da isterse sohbet kalıcı olur.
 
-const VARSAYILAN_SUNUCU = 'https://meanwhile.gripe'
+const VARSAYILAN_SUNUCU = 'https://meanwhile.oktaydak.com'
 // plugin.json'daki sürümle aynı olmalı.
-const SURUM = '0.9.6'
+const SURUM = '0.9.7'
 // Kurar ya da günceller ve otomatik güncellemeyi açar.
-const GUNCELLEME_KOMUTU = 'curl -fsSL https://meanwhile.gripe/kur.sh | sh'
+const GUNCELLEME_KOMUTU = 'curl -fsSL https://meanwhile.oktaydak.com/kur.sh | sh'
 // Çalışan Claude Code: zengin görünüm için en az ZENGIN_SURUM gerekir (Text weight/size, Input rows...).
 const ZENGIN_SURUM = '2.1.328'
 const PANEL = 'meanwhile'
@@ -28,8 +28,8 @@ const ONAY_MADDELERI = [
   'For your safety, reports are reviewed with AI help: when someone reports a chat, its latest messages are checked by an AI model (Claude) and by us. Other chats are never read.',
   'We collect usage data linked to a random ID, not to who you are: when you match, how many messages you send and how long they are, your gender and who you’re looking for. Never what anyone writes, your nickname or your photos. We use it to improve matching.',
 ]
-const SARTLAR_ADRESI = 'https://meanwhile.gripe/terms'
-const GIZLILIK_ADRESI = 'https://meanwhile.gripe/privacy'
+const SARTLAR_ADRESI = 'https://meanwhile.oktaydak.com/terms'
+const GIZLILIK_ADRESI = 'https://meanwhile.oktaydak.com/privacy'
 const onayVarMi = async ($: E) => (await $.store.get(await anahtar($, 'onay'))) === ONAY_SURUM
 async function onayla($: E) {
   await $.store.set(await anahtar($, 'onay'), ONAY_SURUM)
