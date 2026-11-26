@@ -12,7 +12,7 @@ import { sohbetSvg } from './sohbetSvg'
 
 const VARSAYILAN_SUNUCU = 'https://meanwhile.gripe'
 // plugin.json'daki sürümle aynı olmalı.
-const SURUM = '0.9.8'
+const SURUM = '0.9.9'
 // Kurar ya da günceller ve otomatik güncellemeyi açar.
 const GUNCELLEME_KOMUTU = 'curl -fsSL https://meanwhile.gripe/kur.sh | sh'
 // Çalışan Claude Code: zengin görünüm için en az ZENGIN_SURUM gerekir (Text weight/size, Input rows...).
@@ -255,7 +255,10 @@ async function isle($: E, d: any) {
       const gelen: Mesaj[] = (g.mesajlar || [])
         .filter((m: Mesaj) => !eski || m.n > eski.son)
         .map((m: Mesaj) => ({ n: m.n, kim: m.kim, metin: temiz(m.metin), at: m.at, ...(m.foto ? { foto: m.foto } : {}) }))
-      // Sunucudan gelen kendi mesajlarımız, iyimser olarak eklediklerimizin yerini alır.
+      // Sunucudan gelen kendi mesajlarımız, iyimser olarak eklediklerimizin yerini alır;
+      // balonun kimliği (at) aynı kalır ki panel o balonu söküp yeniden takmasın.
+      const iyimser = new Map((eski?.mesajlar ?? []).filter(m => m.n < 0 && m.durum !== 'hata').map(m => [m.metin, m.at]))
+      for (const m of gelen) if (m.kim === 'ben' && iyimser.has(m.metin)) m.at = iyimser.get(m.metin)!
       const bizimkiler = new Set(gelen.filter(m => m.kim === 'ben').map(m => m.metin))
       const onceki = (eski?.mesajlar ?? []).filter(m => !(m.n < 0 && m.durum !== 'hata' && bizimkiler.has(m.metin)))
       const gelenO = gelen.filter(m => m.kim === 'o').length
@@ -388,6 +391,7 @@ async function uyar($: E, metin: string) {
 const HIZLI_ARALIK = 2500
 const YAVAS_ARALIK = 20_000
 let sonYoklama = 0
+let sonDurumOzeti = ''
 let sonHareket = 0
 function canliMi(e: Ekran) {
   return e.sirada || !!e.aktif || e.sohbetler.some(s => !s.kalici && !s.bitti) || Date.now() - sonHareket < 60_000
@@ -401,7 +405,12 @@ async function yokla($: E, zorla = true) {
     if (!zorla && !canliMi(e) && Date.now() - sonYoklama < YAVAS_ARALIK - 500) return
     sonYoklama = Date.now()
     const imlec = e.sohbetler.map(s => `${s.id}:${s.son}`).join(',')
-    await isle($, await api($, '/api/durum' + (imlec ? '?son=' + imlec : '')))
+    const veri = await api($, '/api/durum' + (imlec ? '?son=' + imlec : ''))
+    // Hiçbir şey değişmediyse durumu yazma: her yazım paneli baştan çizdirir (masaüstünde kararma gibi görünür).
+    const ozet = imlec + '|' + JSON.stringify(veri)
+    if (ozet === sonDurumOzeti && e.uyari !== BAGLANTI_UYARI) return
+    sonDurumOzeti = ozet
+    await isle($, veri)
     const yeni = (await read($, ekran)).sohbetler.map(s => `${s.id}:${s.son}`).join(',')
     if (yeni !== imlec) sonHareket = Date.now()
   } catch {
