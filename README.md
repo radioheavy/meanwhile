@@ -6,18 +6,21 @@ https://meanwhile.gripe
 
 ## Install
 
-One command in your terminal:
+One line. Paste it into Claude Code (the `!` runs it right there), or into your terminal without the `!`:
 
 ```
-curl -fsSL https://meanwhile.gripe/kur.sh | sh
+! curl -fsSL https://meanwhile.gripe/kur.sh | sh
 ```
+
+Then `/reload-plugins` (or restart Claude Code) and type `/mw`.
 
 It installs the plugin (or updates it if it's already installed) and turns on auto-update for meanwhile: new versions arrive on their own every time you open Claude. The script is short; if you'd like to read it first: https://meanwhile.gripe/kur.sh
 
 To install from inside Claude Code instead:
 
 ```
-/plugin install meanwhile --marketplace radioheavy/meanwhile
+/plugin marketplace add radioheavy/meanwhile
+/plugin install meanwhile@meanwhile
 ```
 
 then `/plugin` → Marketplaces → meanwhile → Enable auto-update.
