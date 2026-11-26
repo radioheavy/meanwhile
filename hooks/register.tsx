@@ -12,7 +12,7 @@ import { sohbetSvg } from './sohbetSvg'
 
 const VARSAYILAN_SUNUCU = 'https://meanwhile.oktaydak.com'
 // plugin.json'daki sürümle aynı olmalı.
-const SURUM = '0.9.2'
+const SURUM = '0.9.3'
 // Kurar ya da günceller ve otomatik güncellemeyi açar.
 const GUNCELLEME_KOMUTU = 'curl -fsSL https://meanwhile.oktaydak.com/kur.sh | sh'
 // Çalışan Claude Code: zengin görünüm için en az ZENGIN_SURUM gerekir (Text weight/size, Input rows...).
@@ -366,13 +366,28 @@ async function uyar($: E, metin: string) {
 }
 
 // ---------- yoklama ----------
-async function yokla($: E) {
+// Yoklama sıklığı: sırada beklerken, açık bir sohbetteyken, sıradan (kalıcı olmayan) bir sohbet
+// sürerken ya da son bir dakikada mesaj geldiyse 2,5 sn; yalnızca kalıcı bağlantılar varken 20 sn.
+// Saat her 2,5 sn'de bir kontrol eder ama sunucuya sadece gerektiğinde sorar.
+const HIZLI_ARALIK = 2500
+const YAVAS_ARALIK = 20_000
+let sonYoklama = 0
+let sonHareket = 0
+function canliMi(e: Ekran) {
+  return e.sirada || !!e.aktif || e.sohbetler.some(s => !s.kalici && !s.bitti) || Date.now() - sonHareket < 60_000
+}
+
+async function yokla($: E, zorla = true) {
   if (yokluyor) return
   yokluyor = true
   try {
     const e = await read($, ekran)
+    if (!zorla && !canliMi(e) && Date.now() - sonYoklama < YAVAS_ARALIK - 500) return
+    sonYoklama = Date.now()
     const imlec = e.sohbetler.map(s => `${s.id}:${s.son}`).join(',')
     await isle($, await api($, '/api/durum' + (imlec ? '?son=' + imlec : '')))
+    const yeni = (await read($, ekran)).sohbetler.map(s => `${s.id}:${s.son}`).join(',')
+    if (yeni !== imlec) sonHareket = Date.now()
   } catch {
     await uyar($, BAGLANTI_UYARI)
   } finally {
@@ -383,7 +398,7 @@ async function yokla($: E) {
 async function yoklamayiBaslat($: E) {
   await $.store.set(await anahtar($, 'aktif'), true)
   if (durdur) return
-  durdur = $.clock.every(2500, () => void yokla($))
+  durdur = $.clock.every(HIZLI_ARALIK, () => void yokla($, false))
 }
 
 function yoklamayiDurdur($: E) {
