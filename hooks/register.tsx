@@ -12,7 +12,7 @@ import { sohbetSvg } from './sohbetSvg'
 
 const VARSAYILAN_SUNUCU = 'https://meanwhile.oktaydak.com'
 // plugin.json'daki sürümle aynı olmalı.
-const SURUM = '0.9.3'
+const SURUM = '0.9.4'
 // Kurar ya da günceller ve otomatik güncellemeyi açar.
 const GUNCELLEME_KOMUTU = 'curl -fsSL https://meanwhile.oktaydak.com/kur.sh | sh'
 // Çalışan Claude Code: zengin görünüm için en az ZENGIN_SURUM gerekir (Text weight/size, Input rows...).
@@ -117,6 +117,7 @@ const temiz = (s: unknown) => String(s ?? '').replace(/[\u0000-\u0009\u000b-\u00
 
 let durdur: { cancel: () => void } | null = null
 let yokluyor = false
+let sonYuzey = '' // en son çizildiği yüzey (terminal, desktop, mobile…): yalnızca kullanım istatistiği için
 let sonYaziyor = 0
 let siradakiYerel = -1
 // Her sohbette okunan son mesaj numarası; kalıcı (yeni oturumda okunmuşlar okunmamış sayılmasın).
@@ -159,7 +160,7 @@ async function api($: E, yol: string, govde?: unknown): Promise<any> {
   }
   const r = await $.http.fetch(taban + yol, {
     method: govde === undefined ? 'GET' : 'POST',
-    headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token, 'x-meanwhile-surum': SURUM },
+    headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token, 'x-meanwhile-surum': SURUM, 'x-meanwhile-claude': (await read($, ortam)).surum || '', 'x-meanwhile-yuzey': sonYuzey },
     body: govde === undefined ? undefined : JSON.stringify(govde),
   })
   let veri: any = {}
@@ -1094,6 +1095,7 @@ export const register: Register = on => {
     // Yüzey ve ölçü: terminal sıkı düzen; masaüstü, mobil ve VS Code ferah düzen.
     // Genişliğe göre: dar (< 64 sütun, telefon ya da dar yan panel) her şeyi alt alta dizer.
     const yuzey = e.surface
+    sonYuzey = String(yuzey || '')
     const masaustu = yuzey !== 'terminal'
     const mobil = yuzey === 'mobile'
     const siki = !masaustu

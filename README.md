@@ -74,6 +74,7 @@ When sending, you choose: **🔥 View once** (opens once, then it's deleted for 
 - Regular chats live in the server's memory and are deleted when they end. Messages in connections that both of you chose to keep are stored until one of you deletes the connection. The last messages of reported chats are kept for review.
 - Notifications never show the message itself; if you type a phone number, email or link, you're warned before it's sent.
 - **What the other person writes never reaches Claude.** Messages only show in the panel and in notifications; command output is marked so it's never sent to the model. Nobody can make your Claude do anything on your behalf.
+- We count anonymous usage (a match being made, a message being sent) to see what works. Never your nickname, never what anyone writes, never your photos.
 - For people 18 and older.
 
 ## Support
