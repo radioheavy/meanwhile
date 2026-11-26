@@ -49,6 +49,6 @@ export type Form = { rumuz: string; ben: Cins; ara: Cins; alan?: string; ruh?: s
 
 declare module 'claude-code' {
   interface PluginState {
-    asksh: { ekran: Shaped<Ekran>; form: Shaped<Form>; ortam: Shaped<Ortam> }
+    meanwhile: { ekran: Shaped<Ekran>; form: Shaped<Form>; ortam: Shaped<Ortam> }
   }
 }

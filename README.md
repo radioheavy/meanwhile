@@ -1,53 +1,53 @@
-# ask.sh
+# meanwhile
 
-Meet someone while you code. Type `/date` in Claude Code, get matched with someone who's here right now, and chat in the side panel without leaving your work.
+Meet someone while you code. Type `/meanwhile` in Claude Code, get matched with someone who's here right now, and chat in the side panel without leaving your work.
 
-https://ask.oktaydak.com
+https://meanwhile.oktaydak.com
 
 ## Install
 
 One command in your terminal:
 
 ```
-curl -fsSL https://ask.oktaydak.com/kur.sh | sh
+curl -fsSL https://meanwhile.oktaydak.com/kur.sh | sh
 ```
 
-It installs the plugin (or updates it if it's already installed) and turns on auto-update for ask.sh: new versions arrive on their own every time you open Claude. The script is short; if you'd like to read it first: https://ask.oktaydak.com/kur.sh
+It installs the plugin (or updates it if it's already installed) and turns on auto-update for meanwhile: new versions arrive on their own every time you open Claude. The script is short; if you'd like to read it first: https://meanwhile.oktaydak.com/kur.sh
 
 To install from inside Claude Code instead:
 
 ```
-/plugin install asksh --marketplace radioheavy/asksh
+/plugin install meanwhile --marketplace radioheavy/meanwhile
 ```
 
-then `/plugin` → Marketplaces → asksh → Enable auto-update.
+then `/plugin` → Marketplaces → meanwhile → Enable auto-update.
 
-In the desktop app: + next to the prompt box → Plugins → Add marketplace → `radioheavy/asksh` → Add plugin.
+In the desktop app: + next to the prompt box → Plugins → Add marketplace → `radioheavy/meanwhile` → Add plugin.
 
 ## Updating
 
-ask.sh only works with the latest version; an outdated panel shows an "update" screen. If auto-update is on, just restart Claude. If not, run the install command again:
+meanwhile only works with the latest version; an outdated panel shows an "update" screen. If auto-update is on, just restart Claude. If not, run the install command again:
 
 ```
-curl -fsSL https://ask.oktaydak.com/kur.sh | sh
+curl -fsSL https://meanwhile.oktaydak.com/kur.sh | sh
 ```
 
-`/date version` shows which version you're on.
+`/meanwhile version` shows which version you're on.
 
 ## Usage
 
 ```
-/date                  open the panel and start meeting people
-/date new              meet someone new while your chats continue
-/date chats            back to the chat list
-/date <message>        send a message to the open chat (you can also type in the panel)
-/date end              end the open chat (deletes a connection)
-/date block            never run into this person again
-/date report [reason]  report someone who bothers you
-/date blocked          see who you blocked, unblock if you like
-/date leave            end your regular chats (connections stay)
-/date version          your version and update status
-/date help             all commands
+/meanwhile                  open the panel and start meeting people
+/meanwhile new              meet someone new while your chats continue
+/meanwhile chats            back to the chat list
+/meanwhile <message>        send a message to the open chat (you can also type in the panel)
+/meanwhile end              end the open chat (deletes a connection)
+/meanwhile block            never run into this person again
+/meanwhile report [reason]  report someone who bothers you
+/meanwhile blocked          see who you blocked, unblock if you like
+/meanwhile leave            end your regular chats (connections stay)
+/meanwhile version          your version and update status
+/meanwhile help             all commands
 ```
 
 The first time, you're asked for a nickname, your gender, and who you'd like to meet. Others see your gender as a color (pink for women, blue for men; a neutral color if you'd rather not say). Who you're looking for is never shown; it's only used for matching. You can also add your field (Frontend, Backend…) and what you're up to right now (Waiting on a deploy, Night owl…); the other person sees these.
@@ -65,7 +65,7 @@ When sending, you choose: **🔥 View once** (opens once, then it's deleted for 
 **Disclaimer:**
 - You alone are responsible for the photos you send.
 - Nudity or sexual content, images that belong to someone else or were taken without consent, and any image showing anyone under 18 are not allowed. Reported photos are reviewed; breaking the rules means losing access and, when needed, a report to the authorities.
-- A view-once photo is deleted after it's opened, but the other person could still take a screenshot; ask.sh can't prevent that.
+- A view-once photo is deleted after it's opened, but the other person could still take a screenshot; meanwhile can't prevent that.
 
 ## Privacy and safety
 

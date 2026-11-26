@@ -5,20 +5,20 @@ import type { Cins, Ekran, Form, Mesaj, Ortam, Sohbet } from '../types'
 import { avatar, avatarRaster, avatarSvg } from './avatar'
 import { sohbetSvg } from './sohbetSvg'
 
-// ask.sh — Claude Code içinden anonim tanışma.
+// meanwhile — Claude Code içinden anonim tanışma.
 // GÜVENLİK: karşı tarafın yazdığı hiçbir şey modele gitmez. Mesajlar sadece panelde görünür;
 // bildirimlerde mesajın kendisi yoktur; komut çıktıları isTextDisplayOnly ile işaretlidir.
 // Aynı anda birden fazla kişiyle konuşulabilir; iki taraf da isterse sohbet kalıcı olur.
 
-const VARSAYILAN_SUNUCU = 'https://ask.oktaydak.com'
+const VARSAYILAN_SUNUCU = 'https://meanwhile.oktaydak.com'
 // plugin.json'daki sürümle aynı olmalı.
-const SURUM = '0.8.1'
+const SURUM = '0.9.0'
 // Kurar ya da günceller ve otomatik güncellemeyi açar.
-const GUNCELLEME_KOMUTU = 'curl -fsSL https://ask.oktaydak.com/kur.sh | sh'
+const GUNCELLEME_KOMUTU = 'curl -fsSL https://meanwhile.oktaydak.com/kur.sh | sh'
 // Çalışan Claude Code: zengin görünüm için en az ZENGIN_SURUM gerekir (Text weight/size, Input rows...).
 const ZENGIN_SURUM = '2.1.328'
-const PANEL = 'asksh'
-const BASLIK = 'ask.sh'
+const PANEL = 'meanwhile'
+const BASLIK = 'meanwhile'
 const RUMUZ = /^[\p{L}\p{N}_.-]{2,20}$/u
 const RUMUZ_UYARI = 'Nicknames can be 2–20 characters: letters, numbers, _ . and -.'
 const TURUNCU = '#ff5b14'
@@ -54,7 +54,7 @@ const RUH_AD: Record<string, string> = {
   toplanti: 'Stuck in a meeting',
 }
 
-// /date alt komutları: İngilizce adlar asıl; eski Türkçe adlar sessiz takma ad.
+// /meanwhile alt komutları: İngilizce adlar asıl; eski Türkçe adlar sessiz takma ad.
 const KOMUT_TAKMA: Record<string, string> = {
   yeni: 'new',
   sohbetler: 'chats',
@@ -100,9 +100,9 @@ const BOS_EKRAN: Ekran = {
   liste: null,
   bildirForm: null,
 }
-const ekran = atom({ plugin: 'asksh', key: 'ekran' } as const, BOS_EKRAN, { shape: 'ekran-2' })
-const ortam = atom({ plugin: 'asksh', key: 'ortam' } as const, { zengin: false, surum: '' } as Ortam, { shape: 'ortam-1' })
-const form = atom({ plugin: 'asksh', key: 'form' } as const, { rumuz: '', ben: 'x', ara: 'x', alan: '', ruh: '', adim: 0 } as Form, {
+const ekran = atom({ plugin: 'meanwhile', key: 'ekran' } as const, BOS_EKRAN, { shape: 'ekran-2' })
+const ortam = atom({ plugin: 'meanwhile', key: 'ortam' } as const, { zengin: false, surum: '' } as Ortam, { shape: 'ortam-1' })
+const form = atom({ plugin: 'meanwhile', key: 'form' } as const, { rumuz: '', ben: 'x', ara: 'x', alan: '', ruh: '', adim: 0 } as Form, {
   shape: 'form-3',
 })
 
@@ -134,7 +134,7 @@ function canlanmali(oda: string, m: { kim: string; at: number }) {
 }
 
 // ---------- kimlik ve sunucu ----------
-// Her pencere bir "profil yuvası" kullanır; varsayılan hepsinde ortak. /date profil <ad> o pencereyi ayırır.
+// Her pencere bir "profil yuvası" kullanır; varsayılan hepsinde ortak. /meanwhile profil <ad> o pencereyi ayırır.
 async function yuva($: E): Promise<string> {
   const id = await $.session.id()
   return String((await $.store.get('yuva:' + id)) || 'varsayilan')
@@ -156,7 +156,7 @@ async function api($: E, yol: string, govde?: unknown): Promise<any> {
   }
   const r = await $.http.fetch(taban + yol, {
     method: govde === undefined ? 'GET' : 'POST',
-    headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token, 'x-asksh-surum': SURUM },
+    headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token, 'x-meanwhile-surum': SURUM },
     body: govde === undefined ? undefined : JSON.stringify(govde),
   })
   let veri: any = {}
@@ -181,7 +181,7 @@ function surumKarsilastir(a: string, b: string): number {
 // Yayındaki sürümü sorar: daha yenisi varsa panelde şerit, desteklenmiyorsa güncelleme ekranı.
 async function surumKontrol($: E) {
   try {
-    const r = await $.http.fetch((await sunucu($)) + '/api/surum')
+    const r = await $.http.fetch((await sunucu($)) + '/api/surum', { headers: { 'x-meanwhile-surum': SURUM } })
     if (!r.ok) return
     const v = JSON.parse(r.text) as { son: string; enAz: string; komut?: string }
     const komut = v.komut || GUNCELLEME_KOMUTU
@@ -204,9 +204,9 @@ function durumSatiri($: E, e: Ekran) {
     okunmamis > 0
       ? `💬 ${okunmamis} unread`
       : e.sirada
-        ? '⏳ ask.sh · looking for someone…'
+        ? '⏳ meanwhile · looking for someone…'
         : e.sohbetler.some(s => !s.bitti)
-          ? `💬 ask.sh · ${adet(e.sohbetler.filter(s => !s.bitti).length, 'chat')}`
+          ? `💬 meanwhile · ${adet(e.sohbetler.filter(s => !s.bitti).length, 'chat')}`
           : undefined,
   )
 }
@@ -292,12 +292,12 @@ async function isle($: E, d: any) {
   const e = await read($, ekran)
   // Sistem bildirimleri (başka sekmedeyken de görünür)
   for (const x of e.sohbetler) {
-    if (yeniEslesme.includes(x.karsi.rumuz) && (await birKez($, 'es:' + x.id))) void sistemBildirimi($, 'ask.sh', `👋 You matched with ${x.karsi.rumuz}`)
+    if (yeniEslesme.includes(x.karsi.rumuz) && (await birKez($, 'es:' + x.id))) void sistemBildirimi($, 'meanwhile', `👋 You matched with ${x.karsi.rumuz}`)
     const sonO = [...x.mesajlar].reverse().find(m => m.kim === 'o')
     if (sonO && x.okunmamis > 0 && x.id !== e.aktif && (await birKez($, `m:${x.id}:${sonO.n}`)))
-      void sistemBildirimi($, 'ask.sh', `💬 ${x.karsi.rumuz} sent ${x.okunmamis > 1 ? `${x.okunmamis} messages` : 'a new message'}`)
-    if (x.fotoIstekGeldi && (await birKez($, 'fi:' + x.id))) void sistemBildirimi($, 'ask.sh', `📷 ${x.karsi.rumuz} wants to send you photos`)
-    if (!x.kalici && x.kalO && !x.kalBen && (await birKez($, 'kal:' + x.id))) void sistemBildirimi($, 'ask.sh', `★ ${x.karsi.rumuz} wants to stay connected`)
+      void sistemBildirimi($, 'meanwhile', `💬 ${x.karsi.rumuz} sent ${x.okunmamis > 1 ? `${x.okunmamis} messages` : 'a new message'}`)
+    if (x.fotoIstekGeldi && (await birKez($, 'fi:' + x.id))) void sistemBildirimi($, 'meanwhile', `📷 ${x.karsi.rumuz} wants to send you photos`)
+    if (!x.kalici && x.kalO && !x.kalBen && (await birKez($, 'kal:' + x.id))) void sistemBildirimi($, 'meanwhile', `★ ${x.karsi.rumuz} wants to stay connected`)
   }
   for (const rumuz of yeniEslesme) {
     // Klavyeyi çalmıyoruz: Claude'a yazarken yanlışlıkla yabancıya yazılmasın.
@@ -333,7 +333,7 @@ async function sistemBildirimi($: E, baslik: string, metin: string) {
       [
         'sh',
         '-c',
-        'if command -v notify-send >/dev/null 2>&1; then notify-send -a ask.sh "$1" "$2"; ' +
+        'if command -v notify-send >/dev/null 2>&1; then notify-send -a meanwhile "$1" "$2"; ' +
           'elif command -v osascript >/dev/null 2>&1; then osascript -e "on run argv" -e "display notification (item 2 of argv) with title (item 1 of argv)" -e "end run" "$1" "$2"; ' +
           'else exit 3; fi',
         'sh',
@@ -399,7 +399,7 @@ async function sirayaGir($: E) {
     return
   }
   await update($, ekran, (e: Ekran) => ({ ...e, durum: 'ana' as const, sirada: true, aktif: null, liste: null, uyari: '' }))
-  $.ui.status('⏳ ask.sh · looking for someone…')
+  $.ui.status('⏳ meanwhile · looking for someone…')
   await isle($, await api($, '/api/kuyruk', { ...p, yas18: true }))
   await yoklamayiBaslat($)
 }
@@ -690,7 +690,7 @@ async function fotoAc($: E, oda: string, id: string, terminal: boolean) {
     return
   }
   const gecici = (await calistir($, ['mktemp', '-d'])).stdout.trim()
-  const yol = `${gecici}/asksh-${id}.jpg`
+  const yol = `${gecici}/meanwhile-${id}.jpg`
   await calistir($, ['sh', '-c', 'printf %s "$1" | base64 -d > "$2" 2>/dev/null || printf %s "$1" | base64 -D > "$2"', 'sh', f.b64, yol])
   const ac = await calistir($, ['sh', '-c', '(xdg-open "$1" || open "$1") >/dev/null 2>&1 &', 'sh', yol])
   if (ac.exitCode !== 0) throw new Error('Couldn’t open the photo.')
@@ -784,7 +784,7 @@ async function geriBildirimGonder($: E, metin: string, yuzey: string) {
 const FOTO_KURALLARI = [
   'You alone are responsible for the photos you send.',
   'Nudity or sexual content, images that belong to someone else or were taken without consent, and any image showing anyone under 18 are not allowed. Reported photos are reviewed; breaking the rules means losing access and, when needed, a report to the authorities.',
-  'A view-once photo is deleted after it’s opened, but the other person could still take a screenshot; ask.sh can’t prevent that.',
+  'A view-once photo is deleted after it’s opened, but the other person could still take a screenshot; meanwhile can’t prevent that.',
   'Photos are resized before they’re sent, and details like location are removed.',
 ]
 
@@ -802,32 +802,48 @@ function metinSaat(t: number) {
 }
 
 function metinListe(d: Ekran): string {
-  const satirlar = ['ask.sh' + (d.sirada ? ' · looking for someone…' : '')]
-  if (!d.sohbetler.length) satirlar.push('No chats right now. To meet someone new: /date new')
+  const satirlar = ['meanwhile' + (d.sirada ? ' · looking for someone…' : '')]
+  if (!d.sohbetler.length) satirlar.push('No chats right now. To meet someone new: /meanwhile new')
   d.sohbetler.forEach((s, i) => {
     const son = s.mesajlar[s.mesajlar.length - 1]
     const durum = s.bitti && !s.kalici ? 'ended' : s.karsiYaziyor ? 'typing…' : s.karsiCevrimici ? 'online' : 'offline'
     const isaret = (s.id === d.aktif ? '›' : ' ') + ` ${i + 1}. ${s.karsi.rumuz}${s.kalici ? ' ★' : ''}${s.okunmamis ? ` ● ${s.okunmamis}` : ''} · ${durum}`
     satirlar.push(isaret + (son ? `\n     ${son.kim === 'ben' ? 'you' : s.karsi.rumuz}: ${son.metin.slice(0, 80)}` : ''))
   })
-  satirlar.push('', 'Open: /date open <no> · Write: /date <message> · New: /date new · Stay connected: /date stay')
+  satirlar.push('', 'Open: /meanwhile open <no> · Write: /meanwhile <message> · New: /meanwhile new · Stay connected: /meanwhile stay')
   return satirlar.join('\n')
 }
 
 function metinSohbet(s: Sohbet, adet = 12): string {
   const satirlar = [`${s.karsi.rumuz}${s.kalici ? ' ★' : ''}${[ALAN_AD[s.karsi.alan ?? ''], RUH_AD[s.karsi.ruh ?? '']].filter(Boolean).map(x => ' · ' + x).join('')}`]
-  if (!s.mesajlar.length) satirlar.push('No messages yet. A hello is a good start: /date hi!')
+  if (!s.mesajlar.length) satirlar.push('No messages yet. A hello is a good start: /meanwhile hi!')
   for (const m of s.mesajlar.slice(-adet)) satirlar.push(`${metinSaat(m.at)}  ${m.kim === 'ben' ? 'you' : s.karsi.rumuz}: ${fotoMetin(m)}${m.foto ? ' (open it on your computer)' : ''}${m.durum === 'hata' ? ' (not sent)' : ''}`)
   if (s.bitti && !s.kalici) satirlar.push(s.bitti.ben ? '— You ended the chat.' : `— ${ayrilis(s.karsi.rumuz, s.bitti.neden)}`)
-  if (!s.kalici && s.kalO && !s.kalBen) satirlar.push(`★ ${s.karsi.rumuz} wants to stay connected. Accept: /date stay`)
+  if (!s.kalici && s.kalO && !s.kalBen) satirlar.push(`★ ${s.karsi.rumuz} wants to stay connected. Accept: /meanwhile stay`)
   return satirlar.join('\n')
+}
+
+// Önceki kurulumdan kimlik taşıma: kur.sh eski kayıtları (kimlik, profil, bağlantılar)
+// ~/.config/meanwhile/tasima.json'a kopyalar; ilk açılışta buraya alınır, var olan anahtara dokunulmaz.
+async function kimlikTasi($: E) {
+  if (await $.store.get('tasindi')) return
+  const r = await calistir($, ['sh', '-c', 'f="${XDG_CONFIG_HOME:-$HOME/.config}/meanwhile/tasima.json"; [ -f "$f" ] && cat "$f"'])
+  const metin = r.exitCode === 0 ? r.stdout.trim() : ''
+  if (metin) {
+    try {
+      const eski = JSON.parse(metin) as Record<string, unknown>
+      for (const [k, v] of Object.entries(eski)) if ((await $.store.get(k)) === undefined) await $.store.set(k, v)
+    } catch {}
+  }
+  await $.store.set('tasindi', true)
 }
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
+    await kimlikTasi($)
     await $.command.register({
-      name: 'date',
-      description: 'ask.sh — meet someone while you code, chat in the side panel',
+      name: 'meanwhile',
+      description: 'meanwhile — meet someone while you code, chat in the side panel',
       argumentHint: '[message | new | chats | end | block | report | leave | help]',
     } as any)
     void surumKontrol($)
@@ -856,7 +872,7 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('command.run', { command: 'date' }, async ($, e) => {
+  on('command.run', { command: 'meanwhile' }, async ($, e) => {
     const args = e.args.trim()
     const [ilk, ...kalan] = args.split(/\s+/)
     // İngilizce alt komutlar; eski Türkçe adlar sessizce çalışmaya devam eder.
@@ -870,10 +886,10 @@ export const register: Register = on => {
     try {
       if (uzaktan && (!args || komut === 'open' || komut === 'chats' || komut === 'stay')) {
         await surumKontrol($)
-        if ((await read($, ekran)).guncelleme?.durum === 'zorunlu') return sonuc(`A new version of ask.sh is out; update to continue. In your terminal: ${(await read($, ekran)).guncelleme?.komut || GUNCELLEME_KOMUTU} (then restart Claude)`)
+        if ((await read($, ekran)).guncelleme?.durum === 'zorunlu') return sonuc(`A new version of meanwhile is out; update to continue. In your terminal: ${(await read($, ekran)).guncelleme?.komut || GUNCELLEME_KOMUTU} (then restart Claude)`)
         let d = await read($, ekran)
         if (!args && (d.durum === 'kurulum' || (!d.sirada && d.sohbetler.length === 0))) {
-          if (!(await profil($))) return sonuc('Set up first with /date on your computer, or: /date setup <nickname> <w|m|x> <w|m|a> 18+')
+          if (!(await profil($))) return sonuc('Set up first with /meanwhile on your computer, or: /meanwhile setup <nickname> <w|m|x> <w|m|a> 18+')
           await sirayaGir($)
         } else await yokla($)
         await yoklamayiBaslat($)
@@ -881,7 +897,7 @@ export const register: Register = on => {
         if (!args || komut === 'chats') return sonuc(metinListe(d))
         const no = Number(kalan[0])
         const hedef = no ? d.sohbetler[no - 1] : (d.sohbetler.find(x => x.id === d.aktif) ?? (d.sohbetler.length === 1 ? d.sohbetler[0] : undefined))
-        if (!hedef) return sonuc('Which chat? Example: /date open 1\n\n' + metinListe(d))
+        if (!hedef) return sonuc('Which chat? Example: /meanwhile open 1\n\n' + metinListe(d))
         await sohbetAc($, hedef.id)
         if (komut === 'stay') {
           await kalIstegi($, hedef.id)
@@ -892,31 +908,31 @@ export const register: Register = on => {
       if (!args) {
         await paneliAc($)
         await surumKontrol($)
-        if ((await read($, ekran)).guncelleme?.durum === 'zorunlu') return sonuc(`A new version of ask.sh is out; update to continue. In your terminal: ${(await read($, ekran)).guncelleme?.komut || GUNCELLEME_KOMUTU} (then restart Claude)`)
+        if ((await read($, ekran)).guncelleme?.durum === 'zorunlu') return sonuc(`A new version of meanwhile is out; update to continue. In your terminal: ${(await read($, ekran)).guncelleme?.komut || GUNCELLEME_KOMUTU} (then restart Claude)`)
         const d = await read($, ekran)
         if (d.durum === 'kurulum' || (!d.sirada && d.sohbetler.length === 0)) await sirayaGir($)
-        return sonuc('ask.sh is open.')
+        return sonuc('meanwhile is open.')
       }
       if (komut === 'help') {
         return sonuc(
           [
-            'ask.sh — meet someone while you code.',
+            'meanwhile — meet someone while you code.',
             '',
-            '  /date                  open the panel and start meeting people',
-            '  /date <message>        send a message to the open chat (you can also type in the panel)',
-            '  /date new              meet someone new while your chats continue',
-            '  /date chats            back to the chat list',
-            '  /date open <no>        open that chat (on your phone: shows its latest messages)',
-            '  /date stay             ask to stay connected in the open chat',
-            '  /date end              leave the open chat (deleted once you both leave; deletes a connection)',
-            '  /date block            never run into the person in the open chat again',
-            '  /date report [reason]  report someone who bothers you',
-            '  /date blocked          see who you blocked, unblock if you like',
-            '  /date feedback <text>  send us an idea, a bug or a fix',
-            '  /date leave            end your regular chats (connections stay)',
-            '  /date version          show your version and whether an update is out',
-            '  /date setup <nickname> <w|m|x> <w|m|a> 18+   quick setup: your gender (woman, man, prefer not to say), who to meet (women, men, anyone); 18+ confirms your age',
-            '  /date profile <name>   give this window a separate identity',
+            '  /meanwhile                  open the panel and start meeting people',
+            '  /meanwhile <message>        send a message to the open chat (you can also type in the panel)',
+            '  /meanwhile new              meet someone new while your chats continue',
+            '  /meanwhile chats            back to the chat list',
+            '  /meanwhile open <no>        open that chat (on your phone: shows its latest messages)',
+            '  /meanwhile stay             ask to stay connected in the open chat',
+            '  /meanwhile end              leave the open chat (deleted once you both leave; deletes a connection)',
+            '  /meanwhile block            never run into the person in the open chat again',
+            '  /meanwhile report [reason]  report someone who bothers you',
+            '  /meanwhile blocked          see who you blocked, unblock if you like',
+            '  /meanwhile feedback <text>  send us an idea, a bug or a fix',
+            '  /meanwhile leave            end your regular chats (connections stay)',
+            '  /meanwhile version          show your version and whether an update is out',
+            '  /meanwhile setup <nickname> <w|m|x> <w|m|a> 18+   quick setup: your gender (woman, man, prefer not to say), who to meet (women, men, anyone); 18+ confirms your age',
+            '  /meanwhile profile <name>   give this window a separate identity',
             '',
             'What the other person writes only shows in the panel; Claude never reads it.',
           ].join('\n'),
@@ -927,8 +943,8 @@ export const register: Register = on => {
         const g = (await read($, ekran)).guncelleme
         return sonuc(
           g
-            ? `ask.sh ${SURUM}. New version: ${g.son}. To update, run this in your terminal: ${g.komut} (then restart Claude)`
-            : `ask.sh ${SURUM}. You’re up to date.`,
+            ? `meanwhile ${SURUM}. New version: ${g.son}. To update, run this in your terminal: ${g.komut} (then restart Claude)`
+            : `meanwhile ${SURUM}. You’re up to date.`,
         )
       }
       if (komut === 'setup') {
@@ -939,12 +955,12 @@ export const register: Register = on => {
         const ara = eski ? (araHam === 'h' ? 'x' : araHam) : ({ w: 'k', m: 'e', a: 'x' } as Record<string, string>)[(araHam ?? '').toLowerCase()]
         if (!rumuz || !RUMUZ.test(rumuz) || !/^[kex]$/.test(ben ?? '') || !/^[kex]$/.test(ara ?? '') || onay !== '18+')
           return sonuc(
-            'Usage: /date setup <nickname> <w|m|x> <w|m|a> 18+\n' +
+            'Usage: /meanwhile setup <nickname> <w|m|x> <w|m|a> 18+\n' +
               RUMUZ_UYARI +
               '\nw|m|x is your gender (woman, man, prefer not to say); w|m|a is who you want to meet (women, men, anyone). The final 18+ confirms you’re 18 or older. Rules: be kind, don’t share personal info, and if something feels off, end the chat, block or report.',
           )
         await kaydet($, { rumuz, ben: ben as Cins, ara: ara as Cins })
-        return sonuc(`You’re all set, ${rumuz}. Start with /date.`)
+        return sonuc(`You’re all set, ${rumuz}. Start with /meanwhile.`)
       }
       if (komut === 'profile') {
         const ad = (kalan[0] || '').toLocaleLowerCase('tr')
@@ -956,7 +972,7 @@ export const register: Register = on => {
         await update($, ekran, () => BOS_EKRAN)
         const p = await profil($)
         await update($, form, () => ({ rumuz: '', ben: 'x' as Cins, ara: 'x' as Cins, alan: '', ruh: '', ...p, adim: 0 }))
-        return sonuc(`This window now uses the "${!ad || ad === 'varsayilan' ? 'default' : ad}" profile${p ? ` (${p.rumuz})` : ''}. Start with /date.`)
+        return sonuc(`This window now uses the "${!ad || ad === 'varsayilan' ? 'default' : ad}" profile${p ? ` (${p.rumuz})` : ''}. Start with /meanwhile.`)
       }
       if (komut === 'server') {
         if (kalan[0]) await $.store.set(await anahtar($, 'sunucu'), kalan[0])
@@ -968,7 +984,7 @@ export const register: Register = on => {
         if (!metin) {
           await paneliAc($)
           await update($, ekran, (x: Ekran) => ({ ...x, geriBildirim: true, aktif: null }))
-          return sonuc('The feedback form is in the panel. Or send it directly: /date feedback <your text>')
+          return sonuc('The feedback form is in the panel. Or send it directly: /meanwhile feedback <your text>')
         }
         await geriBildirimGonder($, metin, uzaktan ? 'telefon' : 'komut')
         return sonuc('Thanks! We got your feedback.')
@@ -994,12 +1010,12 @@ export const register: Register = on => {
       }
       const d = await read($, ekran)
       const acik = d.sohbetler.find(s => s.id === d.aktif) ?? (d.sohbetler.filter(s => !s.bitti || s.kalici).length === 1 ? d.sohbetler.find(s => !s.bitti || s.kalici) : undefined)
-      // Bilgisayarda da: "/date open 2" sohbeti panelde açar, "/date stay" bağlantı isteği yollar
+      // Bilgisayarda da: "/meanwhile open 2" sohbeti panelde açar, "/meanwhile stay" bağlantı isteği yollar
       // (yoksa bu kelimeler karşı tarafa mesaj olarak giderdi).
       if (komut === 'open') {
         const no = Number(kalan[0])
         const hedef = no ? d.sohbetler[no - 1] : undefined
-        if (!hedef) return sonuc('Which chat? Example: /date open 1 (numbers follow the chat list).')
+        if (!hedef) return sonuc('Which chat? Example: /meanwhile open 1 (numbers follow the chat list).')
         await paneliAc($)
         await sohbetAc($, hedef.id)
         return sonuc(`Opened your chat with ${hedef.karsi.rumuz} in the panel.`)
@@ -1017,7 +1033,7 @@ export const register: Register = on => {
         await eylem($, es[komut]!, acik.id, kalan.join(' '))
         return sonuc({ bitir: acik.kalici ? 'You deleted the connection; the chat is gone for both of you.' : acik.bitti ? 'Chat deleted.' : 'You left the chat. It’ll be fully deleted once they leave too.', engelle: 'Blocked.', sikayet: 'Report received, thanks.', kapat: '' }[es[komut]!])
       }
-      if (!acik || (acik.bitti && !acik.kalici)) return sonuc('You don’t have an open chat right now. Pick one in the panel or start with /date.')
+      if (!acik || (acik.bitti && !acik.kalici)) return sonuc('You don’t have an open chat right now. Pick one in the panel or start with /meanwhile.')
       await gonder($, acik.id, args)
       if (uzaktan) {
         await yokla($)
@@ -1093,7 +1109,7 @@ export const register: Register = on => {
     const ust = (
       <Box flexDirection="row" justifyContent="space-between" alignItems="center">
         <Text {...BASLIK_S}>
-          ask.sh<Text color={TURUNCU}>.</Text>
+          meanwhile<Text color={TURUNCU}>.</Text>
         </Text>
         {sayac ? <Text {...KUCUK}>{sayac}</Text> : null}
       </Box>
@@ -1123,7 +1139,7 @@ export const register: Register = on => {
         <Box flexDirection="column" gap={1}>
           {ust}
           <Box flexDirection="column" gap={1} borderStyle="round" borderColor={TURUNCU} paddingX={2} paddingY={masaustu ? 1 : 0}>
-            <Text {...BASLIK_S}>You need to update ask.sh</Text>
+            <Text {...BASLIK_S}>You need to update meanwhile</Text>
             <Text dimColor>
               A new version is out{g.son ? ` (${g.son})` : ''}, you have {SURUM}. To continue, run this in your terminal, then restart Claude. It also turns on auto-update, so you won’t have to do this by hand again:
             </Text>
@@ -1151,7 +1167,7 @@ export const register: Register = on => {
       return (
         <Box flexDirection="column">
           <Text {...KALIN}>
-            ask.sh<Text color={TURUNCU}>.</Text>
+            meanwhile<Text color={TURUNCU}>.</Text>
           </Text>
           <Text {...(okunmamis ? { color: TURUNCU } : { dimColor: true })}>{ozet}</Text>
         </Box>
@@ -1259,7 +1275,7 @@ export const register: Register = on => {
             {ust}
             {kart(
               <Box flexDirection="column" gap={siki ? 0 : 1}>
-                <Text {...BASLIK_S}>You’re leaving ask.sh</Text>
+                <Text {...BASLIK_S}>You’re leaving meanwhile</Text>
                 <Text>
                   {silinecek
                     ? `You’ll leave ${adet(silinecek, 'chat')} you’re not connected in. Once the others leave too, ${silinecek === 1 ? 'it’s' : 'they’re'} fully deleted.`
@@ -1610,7 +1626,7 @@ export const register: Register = on => {
                   const kapali = !d.bildirimKapali
                   await $.store.set(await anahtar($, 'bildirim'), kapali ? 'kapali' : 'acik')
                   await update($, ekran, (x: Ekran) => ({ ...x, bildirimKapali: kapali, uyari: kapali ? 'System notifications are off.' : 'System notifications are on.' }))
-                  if (!kapali) void sistemBildirimi($, 'ask.sh', '🔔 Notifications on')
+                  if (!kapali) void sistemBildirimi($, 'meanwhile', '🔔 Notifications on')
                 })
               }
             />
@@ -1883,7 +1899,7 @@ export const register: Register = on => {
             </>
           )}
           {acik && siki && !odakta && <Text dimColor>ctrl+x tab to type in the panel</Text>}
-          {acik && mobil && <Text dimColor>No input box? Use /date your message</Text>}
+          {acik && mobil && <Text dimColor>No input box? Use /meanwhile your message</Text>}
         </Box>
         {!acik && uyari}
         {eskiNot}

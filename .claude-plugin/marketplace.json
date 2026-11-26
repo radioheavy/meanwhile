@@ -1,5 +1,5 @@
 {
-  "name": "asksh",
+  "name": "meanwhile",
   "owner": { "name": "radioheavy" },
-  "plugins": [{ "name": "asksh", "source": "./" }]
+  "plugins": [{ "name": "meanwhile", "source": "./" }]
 }

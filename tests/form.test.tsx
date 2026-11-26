@@ -1,10 +1,10 @@
 import { expect, test } from 'claude-code/testing'
 
 const PANE = {
-  plugin: 'asksh',
+  plugin: 'meanwhile',
   component: 'Pane',
-  requestId: 'asksh',
-  props: { title: 'ask.sh', isFocused: true, bodyColumns: 80, placement: 'dock', scroll: { offset: 0, bodyRows: 40 }, view: {} },
+  requestId: 'meanwhile',
+  props: { title: 'meanwhile', isFocused: true, bodyColumns: 80, placement: 'dock', scroll: { offset: 0, bodyRows: 40 }, view: {} },
 } as const
 
 const desteklenmiyor = (h: unknown) => /is not allowed|not an element|refused/.test(String((h as Error)?.message ?? h))
@@ -12,7 +12,7 @@ const desteklenmiyor = (h: unknown) => /is not allowed|not an element|refused/.t
 // Sahte sunucu ve motor: hafızalı depo, sohbet listesi.
 function kur(on: any, secenek: { surum?: string; sohbetler?: any[]; enAz?: string } = {}) {
   on('ui.open', () => ({ value: { isPlaced: true } }))
-  on('command.register', () => ({ value: { command: 'date' } }))
+  on('command.register', () => ({ value: { command: 'meanwhile' } }))
   on('session.id', () => ({ value: 'test-oturum' }))
   on('session.version', () => ({ value: { version: secenek.surum ?? '2.1.295', base: secenek.surum ?? '2.1.295' } }))
   on('session.start', (_: any, e: any) => ({ cwd: e.cwd }))
@@ -104,11 +104,11 @@ test('renders on desktop too', async ($, on) => {
 })
 
 test('outdated version: panel asks to update', async ($, on) => {
-  kur(on, { enAz: '0.9.0' })
+  kur(on, { enAz: '9.0.0' })
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   await new Promise(r => (globalThis as any).setTimeout(r, 50))
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
-  expect((await ui.find({ type: 'Text', text: /need to update/ }))?.text).toBe('You need to update ask.sh')
+  expect((await ui.find({ type: 'Text', text: /need to update/ }))?.text).toBe('You need to update meanwhile')
   await ui.unmount()
 })
 
@@ -197,7 +197,7 @@ test('responsive: narrow screen, mobile and minimized widget', async ($, on) => 
   // mobil: yazma ipucu görünür
   const mob = await $.ui.mount({ ...PANE, surface: 'mobile', props: { ...PANE.props, bodyColumns: 36 } })
   await mob.press({ key: 'ac-oda1' })
-  expect((await mob.find({ type: 'Text', text: /\/date your message/ }))?.text).toContain('/date your message')
+  expect((await mob.find({ type: 'Text', text: /\/meanwhile your message/ }))?.text).toContain('/meanwhile your message')
   await mob.press({ key: 'geri-liste' })
   await mob.unmount()
   // masaüstünde küçültülmüş panel: tek bakışlık özet
@@ -241,7 +241,7 @@ test('confirm before leaving: one chat and signing out of all', async ($, on) =>
   await ui.press({ key: 'geri-liste' })
   // hepsinden çıkış
   await ui.press({ key: 'cik' })
-  expect((await ui.find({ type: 'Text', text: /leaving ask\.sh/ }))?.text).toBe('You’re leaving ask.sh')
+  expect((await ui.find({ type: 'Text', text: /leaving meanwhile/ }))?.text).toBe('You’re leaving meanwhile')
   await ui.press({ key: 'ayril-vazgec' })
   await ui.unmount()
 })
