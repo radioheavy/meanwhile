@@ -29,14 +29,18 @@ function kur(on: any, secenek: { surum?: string; sohbetler?: any[]; enAz?: strin
   on('ui.status', () => ({ value: undefined }))
   on('ui.toast', () => ({ value: undefined }))
   on('ui.notify', () => ({ value: { isSent: false, reason: 'disabled' } }))
-  const sunucu = { sohbetler: secenek.sohbetler ?? [], engelli: false }
+  const sunucu = { sohbetler: secenek.sohbetler ?? [], engelli: false, kuyruk: [] as any[], depo }
   on('http.fetch', (_: any, e: any) => {
     const u = String(e.url)
-    const govde = e.body ? JSON.parse(e.body) : {}
+    const ham = e.init?.body ?? e.body
+    const govde = ham ? JSON.parse(ham) : {}
     let g: unknown = { tamam: true }
     if (u.endsWith('/api/kimlik')) g = { token: 'a'.repeat(64) }
     else if (u.includes('/api/surum')) g = { son: secenek.enAz ?? '0.5.0', enAz: secenek.enAz ?? '0.5.0' }
-    else if (u.includes('/api/kuyruk') || u.includes('/api/durum') || u.includes('/api/sira-cik')) g = { sirada: false, sohbetler: sunucu.sohbetler, cevrimici: 3 }
+    else if (u.includes('/api/kuyruk') || u.includes('/api/durum') || u.includes('/api/sira-cik')) {
+      if (u.includes('/api/kuyruk')) sunucu.kuyruk.push(govde)
+      g = { sirada: false, sohbetler: sunucu.sohbetler, cevrimici: 3 }
+    }
     else if (u.endsWith('/api/mesaj')) g = { tamam: true, n: 99 }
     else if (u.endsWith('/api/engelle')) {
       sunucu.engelli = true
@@ -331,4 +335,25 @@ test('/mw support shows the coffee link', async ($, on) => {
   await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
   const r = await $.command.run({ command: 'mw', args: 'support' } as any)
   expect(r.text).toContain('https://buymeacoffee.com/oktaydak')
+})
+
+test('terms: setup needs consent, it is sent with the queue, and existing users are asked once', async ($, on) => {
+  const sunucu = kur(on)
+  await $.session.start({ cwd: '/', surface: 'terminal', isInteractive: true })
+  const eksik = await $.command.run({ command: 'mw', args: 'setup gececi_kedi w a 18+' } as any)
+  expect(eksik.text).toContain('18+ agree')
+  expect(eksik.text).toContain('AI')
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await kurulumuGec(ui)
+  expect(sunucu.kuyruk.at(-1)?.onay).toBe('2026-11-26')
+  // Daha önce kabul etmemiş (eski) kullanıcı: bir kez sorulur.
+  sunucu.depo.delete('onay')
+  const once = sunucu.kuyruk.length
+  await $.command.run({ command: 'mw', args: 'new' } as any)
+  expect(sunucu.kuyruk.length).toBe(once)
+  expect(await ui.find({ type: 'Button', key: 'onay-evet' })).toBeDefined()
+  await ui.press({ key: 'onay-evet' })
+  expect(sunucu.kuyruk.length).toBe(once + 1)
+  expect(sunucu.kuyruk.at(-1)?.onay).toBe('2026-11-26')
+  await ui.unmount()
 })

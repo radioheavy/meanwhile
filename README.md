@@ -73,8 +73,10 @@ When sending, you choose: **🔥 View once** (opens once, then it's deleted for 
 - No real name, email or photo is asked for; only your nickname is shown.
 - Regular chats live in the server's memory and are deleted when they end. Messages in connections that both of you chose to keep are stored until one of you deletes the connection. The last messages of reported chats are kept for review.
 - Notifications never show the message itself; if you type a phone number, email or link, you're warned before it's sent.
-- **What the other person writes never reaches Claude.** Messages only show in the panel and in notifications; command output is marked so it's never sent to the model. Nobody can make your Claude do anything on your behalf.
-- We count anonymous usage (a match being made, a message being sent) to see what works. Never your nickname, never what anyone writes, never your photos.
+- **What the other person writes never reaches your Claude session.** Messages only show in the panel and in notifications; command output is marked so it's never sent to the model. Nobody can make your Claude do anything on your behalf.
+- **Reports are reviewed with AI help.** When someone reports a chat, its latest messages are checked by an AI model (Claude, via our server) and by us. Other chats are never read.
+- We collect usage data linked to a random ID, not to who you are: when you match, how many messages you send and how long they are, your gender and who you're looking for. Never what anyone writes, your nickname or your photos.
+- You agree to these the first time you start (`/meanwhile terms` shows them again). Full text: https://meanwhile.oktaydak.com/terms · https://meanwhile.oktaydak.com/privacy
 - For people 18 and older.
 
 ## Support

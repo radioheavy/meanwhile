@@ -23,6 +23,7 @@ export type Sohbet = {
 }
 export type Ekran = {
   durum: 'kurulum' | 'ana'
+  onayGerek?: boolean
   sirada: boolean
   sohbetler: Sohbet[]
   aktif: string | null

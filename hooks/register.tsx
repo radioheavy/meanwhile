@@ -12,7 +12,7 @@ import { sohbetSvg } from './sohbetSvg'
 
 const VARSAYILAN_SUNUCU = 'https://meanwhile.oktaydak.com'
 // plugin.json'daki sürümle aynı olmalı.
-const SURUM = '0.9.4'
+const SURUM = '0.9.5'
 // Kurar ya da günceller ve otomatik güncellemeyi açar.
 const GUNCELLEME_KOMUTU = 'curl -fsSL https://meanwhile.oktaydak.com/kur.sh | sh'
 // Çalışan Claude Code: zengin görünüm için en az ZENGIN_SURUM gerekir (Text weight/size, Input rows...).
@@ -20,6 +20,21 @@ const ZENGIN_SURUM = '2.1.328'
 const PANEL = 'meanwhile'
 const BASLIK = 'meanwhile'
 const DESTEK_ADRESI = 'https://buymeacoffee.com/oktaydak'
+// Kullanım şartları ve veri kullanımı: metin değişince sürüm değişir, herkes yeniden kabul eder.
+const ONAY_SURUM = '2026-11-26'
+const ONAY_MADDELERI = [
+  'You’re 18 or older.',
+  'Be kind. No harassment, no unwanted sexual content, no sharing anyone’s personal info.',
+  'For your safety, reports are reviewed with AI help: when someone reports a chat, its latest messages are checked by an AI model (Claude) and by us. Other chats are never read.',
+  'We collect usage data linked to a random ID, not to who you are: when you match, how many messages you send and how long they are, your gender and who you’re looking for. Never what anyone writes, your nickname or your photos. We use it to improve matching.',
+]
+const SARTLAR_ADRESI = 'https://meanwhile.oktaydak.com/terms'
+const GIZLILIK_ADRESI = 'https://meanwhile.oktaydak.com/privacy'
+const onayVarMi = async ($: E) => (await $.store.get(await anahtar($, 'onay'))) === ONAY_SURUM
+async function onayla($: E) {
+  await $.store.set(await anahtar($, 'onay'), ONAY_SURUM)
+  await update($, ekran, (e: Ekran) => ({ ...e, onayGerek: false }))
+}
 const RUMUZ = /^[\p{L}\p{N}_.-]{2,20}$/u
 const RUMUZ_UYARI = 'Nicknames can be 2–20 characters: letters, numbers, _ . and -.'
 const TURUNCU = '#ff5b14'
@@ -417,9 +432,13 @@ async function sirayaGir($: E) {
     await update($, ekran, (e: Ekran) => ({ ...e, durum: 'kurulum' as const }))
     return
   }
+  if (!(await onayVarMi($))) {
+    await update($, ekran, (e: Ekran) => ({ ...e, onayGerek: true }))
+    return
+  }
   await update($, ekran, (e: Ekran) => ({ ...e, durum: 'ana' as const, sirada: true, aktif: null, liste: null, uyari: '' }))
   $.ui.status('⏳ meanwhile · looking for someone…')
-  await isle($, await api($, '/api/kuyruk', { ...p, yas18: true }))
+  await isle($, await api($, '/api/kuyruk', { ...p, yas18: true, onay: ONAY_SURUM }))
   await yoklamayiBaslat($)
 }
 
@@ -915,7 +934,9 @@ export const register: Register = on => {
         if ((await read($, ekran)).guncelleme?.durum === 'zorunlu') return sonuc(`A new version of meanwhile is out; update to continue. In your terminal: ${(await read($, ekran)).guncelleme?.komut || GUNCELLEME_KOMUTU} (then restart Claude)`)
         let d = await read($, ekran)
         if (!args && (d.durum === 'kurulum' || (!d.sirada && d.sohbetler.length === 0))) {
-          if (!(await profil($))) return sonuc('Set up first with /meanwhile on your computer, or: /meanwhile setup <nickname> <w|m|x> <w|m|a> 18+')
+          if (!(await profil($))) return sonuc('Set up first with /meanwhile on your computer, or: /meanwhile setup <nickname> <w|m|x> <w|m|a> 18+ agree')
+          if (!(await onayVarMi($)))
+            return sonuc(['A few things first:', ...ONAY_MADDELERI.map(m => '• ' + m), `Terms: ${SARTLAR_ADRESI} · Privacy: ${GIZLILIK_ADRESI}`, 'If you’re 18+ and agree: /meanwhile agree'].join('\n'))
           await sirayaGir($)
         } else await yokla($)
         await yoklamayiBaslat($)
@@ -958,10 +979,11 @@ export const register: Register = on => {
             '  /meanwhile support          buy us a coffee if you like meanwhile',
             '  /meanwhile leave            end your regular chats (connections stay)',
             '  /meanwhile version          show your version and whether an update is out',
-            '  /meanwhile setup <nickname> <w|m|x> <w|m|a> 18+   quick setup: your gender (woman, man, prefer not to say), who to meet (women, men, anyone); 18+ confirms your age',
+            '  /meanwhile terms              what you agree to (terms and privacy)',
+            '  /meanwhile setup <nickname> <w|m|x> <w|m|a> 18+ agree   quick setup: your gender (woman, man, prefer not to say), who to meet (women, men, anyone); 18+ confirms your age',
             '  /meanwhile profile <name>   give this window a separate identity',
             '',
-            'What the other person writes only shows in the panel; Claude never reads it.',
+            'What the other person writes only shows in the panel; your Claude session never reads it.',
           ].join('\n'),
         )
       }
@@ -980,13 +1002,17 @@ export const register: Register = on => {
         const eski = hamTr === 'kur'
         const ben = eski ? benHam : ({ w: 'k', m: 'e', x: 'x' } as Record<string, string>)[(benHam ?? '').toLowerCase()]
         const ara = eski ? (araHam === 'h' ? 'x' : araHam) : ({ w: 'k', m: 'e', a: 'x' } as Record<string, string>)[(araHam ?? '').toLowerCase()]
-        if (!rumuz || !RUMUZ.test(rumuz) || !/^[kex]$/.test(ben ?? '') || !/^[kex]$/.test(ara ?? '') || onay !== '18+')
+        const kabul = (kalan[4] || '').toLowerCase() === 'agree'
+        if (!rumuz || !RUMUZ.test(rumuz) || !/^[kex]$/.test(ben ?? '') || !/^[kex]$/.test(ara ?? '') || onay !== '18+' || !kabul)
           return sonuc(
-            'Usage: /meanwhile setup <nickname> <w|m|x> <w|m|a> 18+\n' +
+            'Usage: /meanwhile setup <nickname> <w|m|x> <w|m|a> 18+ agree\n' +
               RUMUZ_UYARI +
-              '\nw|m|x is your gender (woman, man, prefer not to say); w|m|a is who you want to meet (women, men, anyone). The final 18+ confirms you’re 18 or older. Rules: be kind, don’t share personal info, and if something feels off, end the chat, block or report.',
+              '\nw|m|x is your gender (woman, man, prefer not to say); w|m|a is who you want to meet (women, men, anyone). "18+ agree" confirms you’re 18 or older and agree to the following:\n' +
+              ONAY_MADDELERI.map(m => '• ' + m).join('\n') +
+              `\nTerms: ${SARTLAR_ADRESI} · Privacy: ${GIZLILIK_ADRESI}`,
           )
         await kaydet($, { rumuz, ben: ben as Cins, ara: ara as Cins })
+        await onayla($)
         return sonuc(`You’re all set, ${rumuz}. Start with /meanwhile.`)
       }
       if (komut === 'profile') {
@@ -1006,6 +1032,12 @@ export const register: Register = on => {
         else await $.store.delete(await anahtar($, 'sunucu'))
         return sonuc('server: ' + (await sunucu($)))
       }
+      if (komut === 'agree') {
+        await onayla($)
+        return sonuc('Thanks, you’re all set. Start with /meanwhile.')
+      }
+      if (komut === 'terms')
+        return sonuc(['meanwhile: what you agree to', ...ONAY_MADDELERI.map(m => '• ' + m), `Terms: ${SARTLAR_ADRESI}`, `Privacy: ${GIZLILIK_ADRESI}`, 'To agree: /meanwhile agree'].join('\n'))
       if (komut === 'support') return sonuc(`Thanks for thinking of it ☕ ${DESTEK_ADRESI}`)
       if (komut === 'feedback') {
         const metin = kalan.join(' ')
@@ -1428,6 +1460,49 @@ export const register: Register = on => {
       )
     }
 
+    // ---------- şartlar ve veri kullanımı ----------
+    const onayMetni = (
+      <Box key="onay-metni" flexDirection="column">
+        <Text bold>Before you start</Text>
+        {ONAY_MADDELERI.map((m, i) => (
+          <Text key={'onay-' + i} dimColor>
+            • {m}
+          </Text>
+        ))}
+        <Text dimColor>
+          Full terms: <Link href={SARTLAR_ADRESI} label="Terms" /> · <Link href={GIZLILIK_ADRESI} label="Privacy" />
+        </Text>
+      </Box>
+    )
+    if (d.onayGerek && d.durum !== 'kurulum') {
+      return (
+        <Box flexDirection="column" gap={siki ? 0 : 1}>
+          {ust}
+          {kart(
+            <>
+              <Text {...BASLIK_S}>A few things first</Text>
+              {onayMetni}
+            </>,
+          )}
+          <Box flexDirection="row" justifyContent="space-between" alignItems="center">
+            <Button key="onay-hayir" plain label="Not now" onPress={() => void update($, ekran, (x: Ekran) => ({ ...x, onayGerek: false }))} />
+            <Button
+              key="onay-evet"
+              variant="primary"
+              label="I’m 18+ and I agree"
+              onPress={() =>
+                void guvenli($, async () => {
+                  await onayla($)
+                  await sirayaGir($)
+                })
+              }
+            />
+          </Box>
+          {uyari}
+        </Box>
+      )
+    }
+
     // ---------- kurulum (3 adım) ----------
     if (d.durum === 'kurulum') {
       const adim = Math.min(2, f.adim ?? 0)
@@ -1518,7 +1593,8 @@ export const register: Register = on => {
                 onSelect={(v: string) => void update($, form, (x: Form) => ({ ...x, ruh: v }))}
               />
             </Box>
-            <Text dimColor>The other person sees these. Be kind, don’t share personal info, and if something feels off, end the chat, block or report.</Text>
+            <Text dimColor>The other person sees these.</Text>
+            {onayMetni}
           </Box>
         )
       }
@@ -1530,11 +1606,12 @@ export const register: Register = on => {
           <Button
             key="basla"
             variant="primary"
-            label="I’m 18 or older, let’s go"
+            label="I’m 18+ and I agree, let’s go"
             onPress={() =>
               void guvenli($, async () => {
                 const x = await read($, form)
                 await kaydet($, { rumuz: x.rumuz, ben: x.ben, ara: x.ara, alan: x.alan ?? '', ruh: x.ruh ?? '' })
+                await onayla($)
                 await sirayaGir($)
               })
             }
