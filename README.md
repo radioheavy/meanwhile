@@ -69,6 +69,15 @@ When sending, you choose: **🔥 View once** (opens once, then it's deleted for 
 - Nudity or sexual content, images that belong to someone else or were taken without consent, and any image showing anyone under 18 are not allowed. Reported photos are reviewed; breaking the rules means losing access and, when needed, a report to the authorities.
 - A view-once photo is deleted after it's opened, but the other person could still take a screenshot; meanwhile can't prevent that.
 
+## What it runs and connects to
+
+- **Network:** only `https://meanwhile.gripe`, the meanwhile server, for matching, chat, the version check and anonymous usage stats (plugin version, Claude Code version and whether you're in the terminal or the desktop app). Nothing else is contacted.
+- **Your Claude session:** the plugin never reads your conversation, your code or your files, and nothing a match writes enters Claude's context. It adds the `/meanwhile` and `/mw` commands and draws one side panel.
+- **Programs on your computer,** each only when you use the feature:
+  - a desktop notification when a message arrives (`notify-send` on Linux, `osascript` on macOS); the message text is never put in the notification
+  - sending a photo: reads an image from the clipboard (`wl-paste`, `xclip` or `osascript`) or from a file you pick (`zenity`, `kdialog` or `osascript`), and shrinks it with whichever of `magick`, `convert`, `sips` or `ffmpeg` is installed
+- **Stored on your computer:** your random ID and its token, your nickname and settings, in Claude Code's plugin store.
+
 ## Privacy and safety
 
 - No real name, email or photo is asked for; only your nickname is shown.

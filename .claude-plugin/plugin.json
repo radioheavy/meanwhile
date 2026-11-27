@@ -1,8 +1,23 @@
 {
   "name": "meanwhile",
   "version": "0.11.0",
-  "description": "meanwhile — meet someone while you code: anonymous chat inside Claude Code. /meanwhile",
-  "author": { "name": "radioheavy" },
+  "description": "Meet someone while Claude Code works: type /mw, get matched 1:1 with another developer who's waiting on their agent, and chat in a side panel.",
+  "author": {
+    "name": "radioheavy",
+    "url": "https://github.com/radioheavy"
+  },
   "homepage": "https://meanwhile.gripe",
-  "types": "./types/index.d.ts"
+  "types": "./types/index.d.ts",
+  "repository": "https://github.com/radioheavy/meanwhile",
+  "keywords": [
+    "chat",
+    "social",
+    "matching",
+    "mod"
+  ],
+  "network": {
+    "hosts": [
+      "meanwhile.gripe"
+    ]
+  }
 }

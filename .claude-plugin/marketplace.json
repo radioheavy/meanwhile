@@ -1,5 +1,13 @@
 {
   "name": "meanwhile",
-  "owner": { "name": "radioheavy" },
-  "plugins": [{ "name": "meanwhile", "source": "./" }]
+  "owner": {
+    "name": "radioheavy"
+  },
+  "plugins": [
+    {
+      "name": "meanwhile",
+      "source": "./"
+    }
+  ],
+  "description": "meanwhile: meet someone while Claude Code works."
 }
