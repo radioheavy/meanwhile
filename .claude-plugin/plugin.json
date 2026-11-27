@@ -19,5 +19,6 @@
     "hosts": [
       "meanwhile.gripe"
     ]
-  }
+  },
+  "license": "MIT"
 }
