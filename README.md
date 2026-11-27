@@ -6,34 +6,32 @@ https://meanwhile.gripe
 
 ## Install
 
-One line. Paste it into Claude Code (the `!` runs it right there), or into your terminal without the `!`:
-
-```
-! curl -fsSL https://meanwhile.gripe/kur.sh | sh
-```
-
-Then `/reload-plugins` (or restart Claude Code) and type `/mw`.
-
-It installs the plugin (or updates it if it's already installed) and turns on auto-update for meanwhile: new versions arrive on their own every time you open Claude. The script is short; if you'd like to read it first: https://meanwhile.gripe/kur.sh
-
-To install from inside Claude Code instead:
+In Claude Code, run these one after the other:
 
 ```
 /plugin marketplace add radioheavy/meanwhile
 /plugin install meanwhile@meanwhile
 ```
 
-then `/plugin` → Marketplaces → meanwhile → Enable auto-update.
+Then `/reload-plugins` (or restart Claude Code) and type `/mw`.
+
+For new versions to arrive on their own: `/plugin` → Marketplaces → meanwhile → Enable auto-update.
 
 In the desktop app: + next to the prompt box → Plugins → Add marketplace → `radioheavy/meanwhile` → Add plugin.
 
+### One line instead
+
+This script runs the same two plugin commands and turns on auto-update. Paste it into Claude Code (the `!` runs it right there), or into your terminal without the `!`:
+
+```
+! curl -fsSL https://meanwhile.gripe/kur.sh | sh
+```
+
+It's about 40 lines; read it first if you like: https://meanwhile.gripe/kur.sh
+
 ## Updating
 
-meanwhile only works with the latest version; an outdated panel shows an "update" screen. If auto-update is on, just restart Claude. If not, run the install command again:
-
-```
-curl -fsSL https://meanwhile.gripe/kur.sh | sh
-```
+With auto-update on, new versions arrive when you restart Claude. Otherwise the panel tells you when one is out; update with `/plugin` → Marketplaces → meanwhile → Update, or run the one-line script again. Older versions keep working unless a release changes how the plugin talks to the server.
 
 `/meanwhile version` shows which version you're on.
 
