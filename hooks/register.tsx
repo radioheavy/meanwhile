@@ -11,9 +11,9 @@ import { avatar, avatarRaster, avatarSvg } from './avatar'
 
 const VARSAYILAN_SUNUCU = 'https://meanwhile.gripe'
 // plugin.json'daki sürümle aynı olmalı.
-const SURUM = '0.11.0'
-// Kurar ya da günceller ve otomatik güncellemeyi açar.
-const GUNCELLEME_KOMUTU = 'curl -fsSL https://meanwhile.gripe/kur.sh | sh'
+const SURUM = '0.11.1'
+// Güncelleme ipucu sabittir: sunucu cevabından asla komut okunmaz (sunucu ele geçse bile kullanıcıya komut dayatamaz).
+const GUNCELLEME_KOMUTU = 'claude plugin update meanwhile'
 // Çalışan Claude Code: zengin görünüm için en az ZENGIN_SURUM gerekir (Text weight/size, Input rows...).
 const ZENGIN_SURUM = '2.1.328'
 const PANEL = 'meanwhile'
@@ -171,7 +171,7 @@ async function api($: E, yol: string, govde?: unknown): Promise<any> {
   } catch {}
   if (r.status === 426) {
     yoklamayiDurdur($)
-    await update($, ekran, (e: Ekran) => ({ ...e, guncelleme: { durum: 'zorunlu' as const, son: String(veri.son || ''), komut: String(veri.komut || GUNCELLEME_KOMUTU) } }))
+    await update($, ekran, (e: Ekran) => ({ ...e, guncelleme: { durum: 'zorunlu' as const, son: String(veri.son || '') } }))
   }
   if (!r.ok) throw new Error(veri.hata || `HTTP ${r.status}`)
   return veri
@@ -189,10 +189,9 @@ async function surumKontrol($: E) {
   try {
     const r = await $.http.fetch((await sunucu($)) + '/api/surum', { headers: { 'x-meanwhile-surum': SURUM } })
     if (!r.ok) return
-    const v = JSON.parse(r.text) as { son: string; enAz: string; komut?: string; saat?: Ekran['saat'] }
-    const komut = v.komut || GUNCELLEME_KOMUTU
+    const v = JSON.parse(r.text) as { son: string; enAz: string; saat?: Ekran['saat'] }
     const durum: 'zorunlu' | 'var' | null = surumKarsilastir(SURUM, v.enAz) < 0 ? 'zorunlu' : surumKarsilastir(SURUM, v.son) < 0 ? 'var' : null
-    await update($, ekran, (e: Ekran) => ({ ...e, guncelleme: durum ? { durum, son: v.son, komut } : null, saat: v.saat ?? e.saat ?? null }))
+    await update($, ekran, (e: Ekran) => ({ ...e, guncelleme: durum ? { durum, son: String(v.son || '') } : null, saat: v.saat ?? e.saat ?? null }))
     if (v.saat) saatHatirlat($, v.saat)
     if (durum === 'zorunlu') yoklamayiDurdur($)
   } catch {}
@@ -949,7 +948,7 @@ export const register: Register = on => {
     try {
       if (uzaktan && (!args || komut === 'open' || komut === 'chats' || komut === 'stay')) {
         await surumKontrol($)
-        if ((await read($, ekran)).guncelleme?.durum === 'zorunlu') return sonuc(`A new version of meanwhile is out; update to continue. In your terminal: ${(await read($, ekran)).guncelleme?.komut || GUNCELLEME_KOMUTU} (then restart Claude)`)
+        if ((await read($, ekran)).guncelleme?.durum === 'zorunlu') return sonuc(`A new version of meanwhile is out; update to continue. In your terminal: ${GUNCELLEME_KOMUTU} (then restart Claude)`)
         let d = await read($, ekran)
         if (!args && (d.durum === 'kurulum' || (!d.sirada && d.sohbetler.length === 0))) {
           if (!(await profil($))) return sonuc('Set up first with /meanwhile on your computer, or: /meanwhile setup <nickname> <w|m|x> <w|m|a> 18+ agree')
@@ -973,7 +972,7 @@ export const register: Register = on => {
       if (!args) {
         await paneliAc($)
         await surumKontrol($)
-        if ((await read($, ekran)).guncelleme?.durum === 'zorunlu') return sonuc(`A new version of meanwhile is out; update to continue. In your terminal: ${(await read($, ekran)).guncelleme?.komut || GUNCELLEME_KOMUTU} (then restart Claude)`)
+        if ((await read($, ekran)).guncelleme?.durum === 'zorunlu') return sonuc(`A new version of meanwhile is out; update to continue. In your terminal: ${GUNCELLEME_KOMUTU} (then restart Claude)`)
         const d = await read($, ekran)
         if (d.durum === 'kurulum' || (!d.sirada && d.sohbetler.length === 0)) await sirayaGir($)
         return sonuc('meanwhile is open.')
@@ -1011,7 +1010,7 @@ export const register: Register = on => {
         const g = (await read($, ekran)).guncelleme
         return sonuc(
           g
-            ? `meanwhile ${SURUM}. New version: ${g.son}. To update, run this in your terminal: ${g.komut} (then restart Claude)`
+            ? `meanwhile ${SURUM}. New version: ${g.son}. To update, run this in your terminal: ${GUNCELLEME_KOMUTU} (then restart Claude)`
             : `meanwhile ${SURUM}. You’re up to date.`,
         )
       }
@@ -1229,12 +1228,12 @@ export const register: Register = on => {
           <Box flexDirection="column" gap={1} borderStyle="round" borderColor={TURUNCU} paddingX={2} paddingY={masaustu ? 1 : 0}>
             <Text {...BASLIK_S}>You need to update meanwhile</Text>
             <Text dimColor>
-              A new version is out{g.son ? ` (${g.son})` : ''}, you have {SURUM}. To continue, run this in your terminal, then restart Claude. It also turns on auto-update, so you won’t have to do this by hand again:
+              A new version is out{g.son ? ` (${g.son})` : ''}, you have {SURUM}. To continue, run this in your terminal, then restart Claude:
             </Text>
-            <Text color={TURUNCU}>{g.komut}</Text>
+            <Text color={TURUNCU}>{GUNCELLEME_KOMUTU}</Text>
           </Box>
           <Box flexDirection="row" gap={1}>
-            <Button key="kopyala" variant="primary" label="Copy command" onPress={() => komutKopyala(g.komut)} />
+            <Button key="kopyala" variant="primary" label="Copy command" onPress={() => komutKopyala(GUNCELLEME_KOMUTU)} />
           </Box>
         </Box>
       )
@@ -1269,9 +1268,9 @@ export const register: Register = on => {
           <Text>
             <Text color={TURUNCU}>↑ </Text>
             <Text dimColor>New version {g.son}: </Text>
-            <Text>{g.komut}</Text>
+            <Text>{GUNCELLEME_KOMUTU}</Text>
           </Text>
-          <Button key="kopyala-serit" plain label="Copy" onPress={() => komutKopyala(g.komut)} />
+          <Button key="kopyala-serit" plain label="Copy" onPress={() => komutKopyala(GUNCELLEME_KOMUTU)} />
         </Box>
       ) : null
 

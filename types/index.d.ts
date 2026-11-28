@@ -44,7 +44,7 @@ export type Ekran = {
   fotoKabul?: boolean
   bildirimKapali?: boolean
   liste?: { id: string; rumuz: string; at: number; bildirildi: boolean }[] | null
-  guncelleme?: { durum: 'var' | 'zorunlu'; son: string; komut: string } | null
+  guncelleme?: { durum: 'var' | 'zorunlu'; son: string } | null
 }
 export type Ortam = { zengin: boolean; surum: string }
 export type Form = { rumuz: string; ben: Cins; ara: Cins; alan?: string; ruh?: string; adim?: number }

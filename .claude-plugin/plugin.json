@@ -1,7 +1,7 @@
 {
   "name": "meanwhile",
-  "version": "0.11.0",
-  "description": "Meet someone while Claude Code works: type /mw, get matched 1:1 with another developer who's waiting on their agent, and chat in a side panel.",
+  "version": "0.11.1",
+  "description": "Meet someone while Claude Code works: type /mw, get matched 1:1 with another developer who's waiting on their agent, and chat in a side panel. 18+ only; matching uses the gender you pick and who you're looking for; optional photo sharing.",
   "author": {
     "name": "radioheavy",
     "url": "https://github.com/radioheavy"

@@ -97,4 +97,4 @@ If meanwhile made a wait nicer, you can buy us a coffee: https://buymeacoffee.co
 
 This plugin uses Claude Code's new "mod" platform (commands, panel, notifications). That platform is in early access, so it may change with Claude Code updates.
 
-Copyright © 2026 radioheavy. All rights reserved.
+Copyright © 2026 radioheavy. Released under the MIT License (see LICENSE).
